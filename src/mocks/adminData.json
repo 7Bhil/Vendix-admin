@@ -1,0 +1,63 @@
+{
+  "stats": {
+    "totalMerchants": 42,
+    "activeMerchants": 38,
+    "suspendedMerchants": 4,
+    "totalVolumeFCFA": 18450000,
+    "pendingReports": 3
+  },
+  "merchants": [
+    {
+      "id": "m-001",
+      "fullName": "Mme Dossou Bernadette",
+      "phone": "+22997001122",
+      "storeName": "Épicerie du Port",
+      "slug": "epicerie-du-port",
+      "status": "ACTIF",
+      "volumeFCFA": 2450000,
+      "createdAt": "2026-10-15"
+    },
+    {
+      "id": "m-002",
+      "fullName": "M. Bio Bio Idrissou",
+      "phone": "+22996112233",
+      "storeName": "Quincaillerie Moderne",
+      "slug": "quincaillerie-moderne",
+      "status": "ACTIF",
+      "volumeFCFA": 5890000,
+      "createdAt": "2026-10-20"
+    },
+    {
+      "id": "m-003",
+      "fullName": "M. Chabi Karim",
+      "phone": "+22994556677",
+      "storeName": "Boutique Prestige Mode",
+      "slug": "prestige-mode",
+      "status": "SUSPENDU",
+      "volumeFCFA": 410000,
+      "createdAt": "2026-10-28"
+    }
+  ],
+  "reports": [
+    {
+      "id": "rep-001",
+      "targetSlug": "prestige-mode",
+      "targetStore": "Boutique Prestige Mode",
+      "reason": "PRODUIT_CONTREFAIT",
+      "reporterPhone": "+22994008899",
+      "description": "Article payé par Mobile Money mais contrefaçon grossière reçue.",
+      "status": "EN_ATTENTE",
+      "createdAt": "2026-11-08T14:30:00Z"
+    },
+    {
+      "id": "rep-002",
+      "targetSlug": "quincaillerie-moderne",
+      "targetStore": "Quincaillerie Moderne",
+      "reason": "PRIX_NON_CONFORME",
+      "reporterPhone": "+22997223344",
+      "description": "Prix affiché sur le lien WhatsApp différent du montant exigé lors de la livraison.",
+      "status": "EN_COURS",
+      "createdAt": "2026-11-07T09:15:00Z"
+    }
+  ]
+}
