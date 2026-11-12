@@ -51,7 +51,7 @@
       "phone": "+229 01 97 56 78 90",
       "city": "Cotonou",
       "category": "Maison",
-      "status": "moderation",
+      "status": "active",
       "createdAt": "2026-08-25"
     },
     {
@@ -91,7 +91,7 @@
       "phone": "+229 01 97 90 12 34",
       "city": "Abomey",
       "category": "Alimentation",
-      "status": "moderation",
+      "status": "active",
       "createdAt": "2026-09-14"
     },
     {
