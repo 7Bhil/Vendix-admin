@@ -29,9 +29,8 @@ const navigationItems = [
 export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-slate-50 md:flex">
-      {/* Barre latérale */}
-      <aside className="flex w-full flex-col bg-slate-950 text-white md:min-h-screen md:w-64 md:shrink-0">
-        {/* Identité de la plateforme */}
+      {/* Barre latérale : ordinateur */}
+      <aside className="hidden w-64 shrink-0 flex-col bg-slate-950 text-white md:flex md:min-h-screen">
         <div className="border-b border-slate-800 px-6 py-6">
           <h1 className="text-2xl font-bold tracking-wide">
             VENDIX
@@ -49,7 +48,6 @@ export default function AdminLayout() {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-4 py-6">
           <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Menu principal
@@ -81,7 +79,6 @@ export default function AdminLayout() {
           </ul>
         </nav>
 
-        {/* Pied de la barre latérale */}
         <div className="border-t border-slate-800 px-6 py-4">
           <p className="text-xs text-slate-500">
             Vendix Administration
@@ -109,10 +106,54 @@ export default function AdminLayout() {
           </span>
         </header>
 
-        <main className="flex-1 p-5 md:p-8">
+        <main className="flex-1 p-5 pb-24 md:p-8">
           <Outlet />
         </main>
       </div>
+
+      {/* Navigation fixe : mobile */}
+      <nav
+        aria-label="Navigation principale mobile"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_15px_rgba(15,23,42,0.06)] md:hidden"
+      >
+        <ul className="mx-auto flex max-w-lg items-center justify-around">
+          {navigationItems.map((item) => {
+            const Icon = item.icon
+
+            return (
+              <li key={item.path} className="flex-1">
+                <NavLink
+                  to={item.path}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 transition-colors ${
+                      isActive
+                        ? 'text-teal-700'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon
+                        size={23}
+                        strokeWidth={isActive ? 2.5 : 1.8}
+                      />
+                      <span
+                        className={`text-[11px] ${
+                          isActive ? 'font-bold' : 'font-medium'
+                        }`}
+                      >
+                        {item.label}
+                      </span>
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            )
+          })}
+        </ul>
+      </nav>
     </div>
   )
 }
