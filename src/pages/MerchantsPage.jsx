@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search, Store, MapPin, Phone, UserRound } from "lucide-react";
 
-import adminData from "../mocks/adminData.json";
 
 const statusConfig = {
   active: {
@@ -20,8 +19,7 @@ const filters = [
   { label: "Suspendues", value: "suspended" },
 ];
 
-export default function MerchantsPage() {
-  const [shops, setShops] = useState(adminData.shops);
+export default function MerchantsPage({ shops, setShops }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
 
