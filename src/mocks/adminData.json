@@ -115,14 +115,7 @@
       "description": "Le produit reçu ne correspond pas à la description publiée dans la boutique.",
       "submittedAt": "2026-11-10T09:30:00",
       "status": "pending",
-      "evidence": [
-        {
-          "id": 1,
-          "fileName": "photo-produit.jpg",
-          "type": "image/jpeg",
-          "description": "Photo du produit reçu"
-        }
-      ]
+      "evidence": []
     },
     {
       "id": 102,
@@ -133,20 +126,7 @@
       "description": "Le paiement a été effectué mais la commande n'a jamais été livrée.",
       "submittedAt": "2026-11-09T14:15:00",
       "status": "pending",
-      "evidence": [
-        {
-          "id": 2,
-          "fileName": "recu-mobile-money.jpg",
-          "type": "image/jpeg",
-          "description": "Justificatif de paiement Mobile Money"
-        },
-        {
-          "id": 3,
-          "fileName": "conversation-whatsapp.jpg",
-          "type": "image/jpeg",
-          "description": "Capture de conversation WhatsApp"
-        }
-      ]
+      "evidence": []
     },
     {
       "id": 103,
@@ -157,14 +137,7 @@
       "description": "Le vendeur aurait tenu des propos déplacés pendant les échanges avec le client.",
       "submittedAt": "2026-11-08T11:45:00",
       "status": "pending",
-      "evidence": [
-        {
-          "id": 4,
-          "fileName": "capture-echange.jpg",
-          "type": "image/jpeg",
-          "description": "Capture des échanges"
-        }
-      ]
+      "evidence": []
     },
     {
       "id": 104,
@@ -188,14 +161,7 @@
       "submittedAt": "2026-11-05T10:00:00",
       "status": "warning",
       "resolution": "Un avertissement a été adressé au commerçant.",
-      "evidence": [
-        {
-          "id": 5,
-          "fileName": "capture-annonce.jpg",
-          "type": "image/jpeg",
-          "description": "Capture de l'annonce concernée"
-        }
-      ]
+      "evidence": []
     }
   ]
 }

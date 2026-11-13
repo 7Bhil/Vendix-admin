@@ -252,10 +252,6 @@ const handleReportAction = (action) => {
                 <p className="mt-4 text-sm leading-6 text-slate-600">
                   {report.description}
                 </p>
-
-                <p className="mt-3 text-xs text-slate-400">
-                  {report.evidence.length} justificatif(s) joint(s)
-                </p>
               </article>
             )
           })
@@ -326,36 +322,6 @@ const handleReportAction = (action) => {
                 </p>
               </div>
 
-              <div>
-                <p className="text-xs font-medium uppercase text-slate-400">
-                  Justificatifs
-                </p>
-
-                {selectedReport.evidence.length === 0 ? (
-                  <p className="mt-2 text-sm text-slate-500">
-                    Aucun justificatif joint.
-                  </p>
-                ) : (
-                  <div className="mt-2 space-y-2">
-                    {selectedReport.evidence.map((file) => (
-                      <div
-                        key={file.id}
-                        className="rounded-lg border border-slate-200 p-3"
-                      >
-                        <p className="text-sm font-medium text-slate-800">
-                          {file.fileName}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {file.description}
-                        </p>
-                        <p className="mt-1 text-xs text-slate-400">
-                          {file.type}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
               {selectedReport.resolution && (
                 <div className="rounded-lg bg-slate-50 p-3">
