@@ -23,8 +23,7 @@ const statusConfig = {
   },
 }
 
-export default function ReportsPage({ setShops }) {
-  const [reports, setReports] = useState(adminData.reports)
+export default function ReportsPage({ setShops, reports = adminData.reports, setReports }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
   const [selectedReport, setSelectedReport] = useState(null)

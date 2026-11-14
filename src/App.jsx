@@ -6,10 +6,16 @@ import adminData from './mocks/adminData.json'
 
 export default function App() {
   const [shops, setShops] = useState(adminData.shops)
+  const [reports, setReports] = useState(adminData.reports)
 
   return (
     <BrowserRouter>
-      <AppRoutes shops={shops} setShops={setShops} />
+      <AppRoutes
+        shops={shops}
+        setShops={setShops}
+        reports={reports}
+        setReports={setReports}
+      />
     </BrowserRouter>
   )
 }

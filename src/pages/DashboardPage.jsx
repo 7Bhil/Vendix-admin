@@ -45,8 +45,8 @@ const reportStatus = {
   },
 }
 
-function DashboardPage() {
-  const { shops, reports, dashboard } = adminData
+function DashboardPage({ shops = adminData.shops, reports = adminData.reports }) {
+  const { dashboard } = adminData
 
   // Calculer les statistiques à partir des données
   const totalShops = shops.length

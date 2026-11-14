@@ -5,22 +5,28 @@ import DashboardPage from "../pages/DashboardPage";
 import MerchantsPage from "../pages/MerchantsPage";
 import ReportsPage from "../pages/ReportsPage";
 
-export default function AppRoutes({ shops, setShops }) {
+export default function AppRoutes({ shops, setShops, reports, setReports }) {
   return (
     <Routes>
-      //Structure commune de l'administration
       <Route element={<AdminLayout />}>
-        //Tableau de bord
-        <Route path="/" element={<DashboardPage />} />
-        //Gestion des commerçants
+        <Route
+          path="/"
+          element={<DashboardPage shops={shops} reports={reports} />}
+        />
         <Route
           path="/commercants"
           element={<MerchantsPage shops={shops} setShops={setShops} />}
         />
-        //Gestion des signalements
         <Route
           path="/signalements"
-          element={<ReportsPage shops={shops} setShops={setShops} />}
+          element={
+            <ReportsPage
+              shops={shops}
+              setShops={setShops}
+              reports={reports}
+              setReports={setReports}
+            />
+          }
         />
       </Route>
     </Routes>
