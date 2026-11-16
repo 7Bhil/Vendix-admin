@@ -17,14 +17,18 @@ const formatCurrency = (amount) =>
   new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA'
 
 // Formater les dates en français
-const formatDate = (date) =>
-  new Intl.DateTimeFormat('fr-FR', {
+const formatDate = (date) => {
+  if (!date) return '-'
+  const parsed = new Date(date)
+  if (isNaN(parsed.getTime())) return '-'
+  return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(date))
+  }).format(parsed)
+}
 
 // Correspondance entre les statuts et leur présentation
 const reportStatus = {
