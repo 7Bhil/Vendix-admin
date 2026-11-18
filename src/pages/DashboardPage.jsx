@@ -1,501 +1,610 @@
 
 import {
   Store,
-  Users,
-  ShoppingBag,
   Wallet,
-  TrendingUp,
-  TrendingDown,
-  ArrowUpRight,
-  ArrowDownRight,
+  Flag,
+  ShieldCheck,
   Clock3,
-  CircleAlert,
+  CalendarDays,
   CheckCircle2,
-  Package,
-  MoreHorizontal,
+  Ban,
+  AlertTriangle,
+  FileText,
+  ArrowUpRight,
+  Activity,
+  CircleCheck,
+  Building2,
 } from 'lucide-react'
 
-// Données fictives pour la démonstration
-const statistics = [
-  {
-    title: 'Commerçants',
-    value: '1 248',
-    evolution: '+12,8 %',
-    positive: true,
-    description: 'vs mois précédent',
-    icon: Store,
-    iconStyle: 'bg-blue-50 text-blue-600',
-  },
-  {
-    title: 'Clients inscrits',
-    value: '8 642',
-    evolution: '+8,4 %',
-    positive: true,
-    description: 'vs mois précédent',
-    icon: Users,
-    iconStyle: 'bg-violet-50 text-violet-600',
-  },
-  {
-    title: 'Commandes',
-    value: '3 856',
-    evolution: '+15,2 %',
-    positive: true,
-    description: 'vs mois précédent',
-    icon: ShoppingBag,
-    iconStyle: 'bg-amber-50 text-amber-600',
-  },
-  {
-    title: "Chiffre d'affaires",
-    value: '12,8 M FCFA',
-    evolution: '-2,3 %',
-    positive: false,
-    description: 'vs mois précédent',
-    icon: Wallet,
-    iconStyle: 'bg-emerald-50 text-emerald-600',
-  },
-]
+import adminData from '../mocks/adminData.json'
 
-const salesData = [
-  { day: 'Lun', value: 35 },
-  { day: 'Mar', value: 55 },
-  { day: 'Mer', value: 42 },
-  { day: 'Jeu', value: 75 },
-  { day: 'Ven', value: 60 },
-  { day: 'Sam', value: 90 },
-  { day: 'Dim', value: 68 },
-]
+// --------------------------------------------------
+// CONFIGURATION DES STATUTS
+// --------------------------------------------------
 
-const activities = [
-  {
-    title: 'Nouveau commerçant inscrit',
-    detail: 'Boutique Le Progrès',
-    time: 'Il y a 12 min',
-    icon: Store,
-    color: 'bg-blue-50 text-blue-600',
+const reportStatusConfig = {
+  pending: {
+    label: 'En attente',
+    className: 'bg-amber-50 text-amber-700 ring-amber-200',
+    icon: Clock3,
   },
-  {
-    title: 'Nouvelle commande enregistrée',
-    detail: 'Commande #VDX-2085',
-    time: 'Il y a 35 min',
-    icon: ShoppingBag,
-    color: 'bg-amber-50 text-amber-600',
+  warning: {
+    label: 'Avertissement envoyé',
+    className: 'bg-blue-50 text-blue-700 ring-blue-200',
+    icon: AlertTriangle,
   },
-  {
-    title: 'Nouveau client inscrit',
-    detail: 'Inscription sur la plateforme',
-    time: 'Il y a 1 h',
-    icon: Users,
-    color: 'bg-violet-50 text-violet-600',
-  },
-  {
-    title: 'Commande livrée',
-    detail: 'Commande #VDX-2079',
-    time: 'Il y a 2 h',
+  dismissed: {
+    label: 'Classé sans suite',
+    className: 'bg-slate-100 text-slate-600 ring-slate-200',
     icon: CheckCircle2,
-    color: 'bg-emerald-50 text-emerald-600',
   },
-]
+  suspended: {
+    label: 'Boutique suspendue',
+    className: 'bg-rose-50 text-rose-700 ring-rose-200',
+    icon: Ban,
+  },
+}
 
-const recentOrders = [
-  {
-    id: '#VDX-2085',
-    customer: 'Client Démo 01',
-    merchant: 'Boutique Le Progrès',
-    amount: '45 000 FCFA',
-    status: 'En attente',
-  },
-  {
-    id: '#VDX-2084',
-    customer: 'Client Démo 02',
-    merchant: 'Marché Central',
-    amount: '28 500 FCFA',
-    status: 'Terminée',
-  },
-  {
-    id: '#VDX-2083',
-    customer: 'Client Démo 03',
-    merchant: 'Mode & Style',
-    amount: '62 000 FCFA',
-    status: 'En cours',
-  },
-  {
-    id: '#VDX-2082',
-    customer: 'Client Démo 04',
-    merchant: 'Boutique Étoile',
-    amount: '19 000 FCFA',
-    status: 'Terminée',
-  },
-]
+// --------------------------------------------------
+// FORMATAGE
+// --------------------------------------------------
 
-function StatCard({ item }) {
-  const Icon = item.icon
-  const EvolutionIcon = item.positive ? TrendingUp : TrendingDown
+function formatCurrency(amount = 0) {
+  return `${new Intl.NumberFormat('fr-FR').format(
+    Number(amount) || 0
+  )} FCFA`
+}
 
+function formatCompactCurrency(amount = 0) {
+  const value = Number(amount) || 0
+
+  if (value >= 1000000) {
+    return `${(value / 1000000).toLocaleString('fr-FR', {
+      maximumFractionDigits: 2,
+    })} M`
+  }
+
+  if (value >= 1000) {
+    return `${(value / 1000).toLocaleString('fr-FR', {
+      maximumFractionDigits: 1,
+    })} K`
+  }
+
+  return value.toLocaleString('fr-FR')
+}
+
+function formatDate(date) {
+  if (!date) return 'Date non disponible'
+
+  const parsedDate = new Date(date)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Date non disponible'
+  }
+
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(parsedDate)
+}
+
+// --------------------------------------------------
+// CARTE STATISTIQUE PREMIUM
+// --------------------------------------------------
+
+function StatCard({
+  title,
+  value,
+  description,
+  icon: Icon,
+  accent,
+  iconBackground,
+}) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-      <div className="flex items-center justify-between">
-        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${item.iconStyle}`}>
-          <Icon size={23} />
+    <article className="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50 sm:p-6">
+      <div className={`absolute left-0 top-0 h-full w-1 ${accent}`} />
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-slate-500">
+            {title}
+          </p>
+
+          <h2 className="mt-3 break-words text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            {value}
+          </h2>
         </div>
 
-        <button
-          type="button"
-          aria-label={`Options ${item.title}`}
-          className="rounded-lg p-2 text-slate-400 hover:bg-slate-100"
-        >
-          <MoreHorizontal size={20} />
-        </button>
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${iconBackground}`}>
+          <Icon size={22} strokeWidth={1.9} />
+        </div>
       </div>
 
-      <p className="mt-5 text-sm font-medium text-slate-500">
-        {item.title}
-      </p>
+      <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+        <span className={`h-1.5 w-1.5 rounded-full ${accent}`} />
 
-      <h3 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900">
-        {item.value}
-      </h3>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span
-          className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-bold ${
-            item.positive
-              ? 'bg-emerald-50 text-emerald-700'
-              : 'bg-red-50 text-red-600'
-          }`}
-        >
-          <EvolutionIcon size={13} />
-          {item.evolution}
-        </span>
-
-        <span className="text-xs text-slate-400">
-          {item.description}
-        </span>
+        <p className="text-xs font-medium text-slate-500">
+          {description}
+        </p>
       </div>
-    </div>
+    </article>
   )
 }
 
-function SalesChart() {
-  const points = salesData
-    .map((item, index) => `${40 + index * 75},${190 - item.value * 1.65}`)
-    .join(' ')
+// --------------------------------------------------
+// RÉPARTITION DES BOUTIQUES
+// --------------------------------------------------
+
+function ShopsDistribution({
+  activeCount,
+  suspendedCount,
+  total,
+}) {
+  const activePercentage =
+    total > 0 ? (activeCount / total) * 100 : 0
+
+  const suspendedPercentage =
+    total > 0 ? (suspendedCount / total) * 100 : 0
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="font-bold text-slate-900">
-            Évolution des ventes
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Activité commerciale des 7 derniers jours
-          </p>
-        </div>
-
-        <span className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">
-          Cette semaine
-        </span>
-      </div>
-
-      <div className="mt-6 w-full overflow-hidden">
-        <svg
-          viewBox="0 0 530 230"
-          className="h-auto w-full"
-          role="img"
-          aria-label="Graphique illustratif de l'évolution des ventes sur sept jours"
-        >
-          {[30, 70, 110, 150, 190].map((y) => (
-            <line
-              key={y}
-              x1="35"
-              y1={y}
-              x2="500"
-              y2={y}
-              stroke="#e2e8f0"
-              strokeDasharray="4 5"
-            />
-          ))}
-
-          <defs>
-            <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-
-          <polygon
-            points={`40,190 ${points} 490,190`}
-            fill="url(#salesGradient)"
-          />
-
-          <polyline
-            points={points}
-            fill="none"
-            stroke="#0d9488"
-            strokeWidth="3.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          {salesData.map((item, index) => {
-            const x = 40 + index * 75
-            const y = 190 - item.value * 1.65
-
-            return (
-              <g key={item.day}>
-                <circle
-                  cx={x}
-                  cy={y}
-                  r="5"
-                  fill="#ffffff"
-                  stroke="#0d9488"
-                  strokeWidth="3"
-                />
-                <text
-                  x={x}
-                  y="218"
-                  fontSize="11"
-                  textAnchor="middle"
-                  fill="#64748b"
-                >
-                  {item.day}
-                </text>
-              </g>
-            )
-          })}
-        </svg>
-      </div>
-
-      <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-        <span className="h-2.5 w-2.5 rounded-full bg-teal-600" />
-        Volume des ventes (données illustratives)
-      </div>
-    </div>
-  )
-}
-
-function ActivityPanel() {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-bold text-slate-900">
-            Activités récentes
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Derniers événements sur Vendix
-          </p>
-        </div>
-
-        <Clock3 size={19} className="text-slate-400" />
-      </div>
-
-      <div className="mt-6 space-y-5">
-        {activities.map((activity, index) => {
-          const Icon = activity.icon
-
-          return (
-            <div key={index} className="flex items-start gap-3">
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${activity.color}`}>
-                <Icon size={18} />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-800">
-                  {activity.title}
-                </p>
-                <p className="mt-1 truncate text-xs text-slate-500">
-                  {activity.detail}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {activity.time}
-                </p>
-              </div>
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <Building2 size={18} />
             </div>
-          )
-        })}
+
+            <h2 className="font-bold text-slate-900">
+              État des boutiques
+            </h2>
+          </div>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Répartition selon le statut de chaque boutique
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-slate-50 px-3 py-2 text-right">
+          <p className="text-xs text-slate-500">
+            Total
+          </p>
+
+          <p className="text-lg font-bold text-slate-900">
+            {total}
+          </p>
+        </div>
       </div>
-    </div>
+
+      <div className="mt-8 space-y-7">
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+
+              <span className="text-sm font-semibold text-slate-700">
+                Boutiques actives
+              </span>
+            </div>
+
+            <div className="text-right">
+              <span className="text-sm font-bold text-slate-900">
+                {activeCount}
+              </span>
+
+              <span className="ml-2 text-xs text-slate-400">
+                {activePercentage.toFixed(0)} %
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="h-2.5 overflow-hidden rounded-full bg-slate-100"
+            role="progressbar"
+            aria-label="Proportion des boutiques actives"
+            aria-valuenow={Math.round(activePercentage)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+              style={{ width: `${activePercentage}%` }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+
+              <span className="text-sm font-semibold text-slate-700">
+                Boutiques suspendues
+              </span>
+            </div>
+
+            <div className="text-right">
+              <span className="text-sm font-bold text-slate-900">
+                {suspendedCount}
+              </span>
+
+              <span className="ml-2 text-xs text-slate-400">
+                {suspendedPercentage.toFixed(0)} %
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="h-2.5 overflow-hidden rounded-full bg-slate-100"
+            role="progressbar"
+            aria-label="Proportion des boutiques suspendues"
+            aria-valuenow={Math.round(suspendedPercentage)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          >
+            <div
+              className="h-full rounded-full bg-rose-500 transition-all duration-700"
+              style={{ width: `${suspendedPercentage}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5">
+        <div className="flex items-center gap-2 text-sm text-slate-500">
+          <Activity size={16} />
+          <span>État global de la plateforme</span>
+        </div>
+
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700">
+          <CircleCheck size={14} />
+          Suivi actif
+        </span>
+      </div>
+    </section>
   )
 }
 
-function OrdersTable() {
-  const statusStyles = {
-    'En attente': 'bg-amber-50 text-amber-700',
-    Terminée: 'bg-emerald-50 text-emerald-700',
-    'En cours': 'bg-blue-50 text-blue-700',
+// --------------------------------------------------
+// SIGNALEMENTS RÉCENTS
+// --------------------------------------------------
+
+function RecentReports({ reports }) {
+  if (reports.length === 0) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+          <CheckCircle2 size={26} />
+        </div>
+
+        <h2 className="mt-4 font-bold text-slate-900">
+          Aucun signalement récent
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Tous les signalements sont absents pour le moment.
+        </p>
+      </section>
+    )
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5 sm:p-6">
+    <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="flex flex-col justify-between gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:p-6">
         <div>
-          <h3 className="font-bold text-slate-900">
-            Commandes récentes
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Aperçu des dernières transactions
+          <div className="flex items-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <Flag size={18} />
+            </div>
+
+            <h2 className="font-bold text-slate-900">
+              Signalements récents
+            </h2>
+          </div>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Les quatre derniers signalements reçus sur Vendix
           </p>
         </div>
 
-        <span className="text-sm font-semibold text-teal-700">
-          Démonstration
-        </span>
+        <div className="flex items-center gap-2 self-start rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 sm:self-auto">
+          <FileText size={15} />
+          {reports.length} signalement(s)
+        </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px] text-left">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-6 py-4 font-semibold">Commande</th>
-              <th className="px-6 py-4 font-semibold">Client</th>
-              <th className="px-6 py-4 font-semibold">Commerçant</th>
-              <th className="px-6 py-4 font-semibold">Montant</th>
-              <th className="px-6 py-4 font-semibold">Statut</th>
-            </tr>
-          </thead>
+      <div className="divide-y divide-slate-100">
+        {reports.map((report) => {
+          const status =
+            reportStatusConfig[report.status] ||
+            reportStatusConfig.pending
 
-          <tbody className="divide-y divide-slate-100">
-            {recentOrders.map((order) => (
-              <tr key={order.id} className="transition hover:bg-slate-50">
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-bold text-slate-800">
-                  {order.id}
-                </td>
+          const StatusIcon = status.icon
 
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
-                  {order.customer}
-                </td>
+          return (
+            <article
+              key={report.id}
+              className="group p-5 transition-colors duration-200 hover:bg-slate-50/80 sm:p-6"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 sm:text-base">
+                      {report.reason || 'Motif non précisé'}
+                    </h3>
 
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
-                  {order.merchant}
-                </td>
+                    <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-500">
+                      #{report.id}
+                    </span>
+                  </div>
 
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-slate-800">
-                  {order.amount}
-                </td>
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <Store size={15} />
+                      </div>
 
-                <td className="whitespace-nowrap px-6 py-4">
-                  <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${statusStyles[order.status]}`}>
-                    {order.status}
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-slate-400">
+                          Boutique concernée
+                        </p>
+
+                        <p className="truncate text-sm font-semibold text-slate-700">
+                          {report.shopName || 'Non renseignée'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                        <FileText size={15} />
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-slate-400">
+                          Signalé par
+                        </p>
+
+                        <p className="truncate text-sm font-semibold text-slate-700">
+                          {report.reporter || 'Non renseigné'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {report.description && (
+                    <p className="mt-4 border-l-2 border-slate-200 pl-3 text-sm leading-relaxed text-slate-500">
+                      {report.description}
+                    </p>
+                  )}
+
+                  <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                    <CalendarDays size={14} />
+
+                    <span>
+                      Soumis le {formatDate(report.submittedAt)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center lg:justify-end">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold ring-1 ring-inset ${status.className}`}
+                  >
+                    <StatusIcon size={14} />
+                    {status.label}
                   </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+            </article>
+          )
+        })}
       </div>
-    </div>
+    </section>
   )
 }
 
-export default function DashboardPage() {
+// --------------------------------------------------
+// PAGE PRINCIPALE
+// --------------------------------------------------
+
+export default function DashboardPage({
+  shops = adminData.shops,
+  reports = adminData.reports,
+  transactionVolumeXof =
+    adminData.dashboard?.transactionVolumeXof ?? 0,
+}) {
+  const safeShops = Array.isArray(shops) ? shops : []
+  const safeReports = Array.isArray(reports) ? reports : []
+
+  const totalShops = safeShops.length
+
+  const activeShops = safeShops.filter(
+    (shop) => shop.status === 'active'
+  ).length
+
+  const suspendedShops = safeShops.filter(
+    (shop) => shop.status === 'suspended'
+  ).length
+
+  const pendingReports = safeReports.filter(
+    (report) => report.status === 'pending'
+  ).length
+
+  const latestReports = [...safeReports]
+    .sort((a, b) => {
+      const dateA = new Date(a.submittedAt || 0).getTime()
+      const dateB = new Date(b.submittedAt || 0).getTime()
+
+      return dateB - dateA
+    })
+    .slice(0, 4)
+
+  const currentDate = new Intl.DateTimeFormat('fr-FR', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date())
+
   return (
-    <div className="space-y-7">
+    <main className="min-w-0 space-y-8 pb-8">
+      {/* EN-TÊTE */}
+      <section className="relative overflow-hidden rounded-2xl border border-blue-900/20 bg-gradient-to-br from-slate-950 via-blue-950 to-blue-900 p-6 shadow-lg shadow-blue-950/10 sm:p-8">
+        <div className="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full border border-white/10" />
+        <div className="pointer-events-none absolute -right-2 -top-10 h-44 w-44 rounded-full border border-white/10" />
 
-      {/* INTRODUCTION */}
-      <section className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-teal-700">
-            Vue d'ensemble
-          </p>
+        <div className="relative flex flex-col justify-between gap-6 sm:flex-row sm:items-center">
+          <div className="max-w-2xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-blue-100 backdrop-blur">
+              <ShieldCheck size={14} />
+              Espace Super-Administrateur
+            </div>
 
-          <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-            Bonjour, Super Admin !
-          </h1>
+            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Tableau de bord
+            </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
-            Voici un aperçu de l'activité de votre plateforme Vendix.
-          </p>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-blue-100/80 sm:text-base">
+              Pilotez la supervision des boutiques et assurez le suivi des signalements sur Vendix.
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-3 rounded-xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-md">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white">
+              <CalendarDays size={19} />
+            </div>
+
+            <div>
+              <p className="text-xs text-blue-100/70">
+                Période actuelle
+              </p>
+
+              <p className="mt-1 text-sm font-bold capitalize text-white">
+                {currentDate}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <p className="text-xs text-slate-400">
-            Période d'analyse
-          </p>
-          <p className="mt-1 text-sm font-bold text-slate-800">
-            Novembre 2026
-          </p>
+        <div className="relative mt-7 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-white/10 pt-5 text-xs text-blue-100/80">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            Supervision des boutiques
+          </span>
+
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            Contrôle des signalements
+          </span>
         </div>
       </section>
 
       {/* STATISTIQUES */}
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-bold text-slate-900">
-            Indicateurs clés
-          </h2>
-          <span className="text-xs text-slate-400">
-            Données fictives
-          </span>
+        <div className="mb-5 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
+              Vue synthétique
+            </p>
+
+            <h2 className="mt-1 text-lg font-bold text-slate-900">
+              Indicateurs clés
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Les principales données de votre plateforme
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {statistics.map((item) => (
-            <StatCard key={item.title} item={item} />
-          ))}
+          <StatCard
+            title="Boutiques enregistrées"
+            value={totalShops.toLocaleString('fr-FR')}
+            description="Ensemble des boutiques inscrites"
+            icon={Store}
+            accent="bg-blue-600"
+            iconBackground="bg-blue-50 text-blue-700"
+          />
+
+          <StatCard
+            title="Boutiques actives"
+            value={activeShops.toLocaleString('fr-FR')}
+            description={`${suspendedShops} boutique(s) suspendue(s)`}
+            icon={ShieldCheck}
+            accent="bg-emerald-500"
+            iconBackground="bg-emerald-50 text-emerald-700"
+          />
+
+          <StatCard
+            title="Volume des transactions"
+            value={formatCompactCurrency(transactionVolumeXof)}
+            description={formatCurrency(transactionVolumeXof)}
+            icon={Wallet}
+            accent="bg-violet-500"
+            iconBackground="bg-violet-50 text-violet-700"
+          />
+
+          <StatCard
+            title="Signalements en attente"
+            value={pendingReports.toLocaleString('fr-FR')}
+            description="Dossiers nécessitant une vérification"
+            icon={Flag}
+            accent="bg-amber-500"
+            iconBackground="bg-amber-50 text-amber-700"
+          />
         </div>
       </section>
 
-      {/* ALERTES */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="flex items-center gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
-            <CircleAlert size={23} />
-          </div>
-
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-900">
-              Signalements à traiter
-            </p>
-            <p className="mt-1 text-2xl font-extrabold text-amber-950">
-              18
-            </p>
-            <p className="text-xs text-amber-700">
-              Nécessitent une vérification
-            </p>
-          </div>
-
-          <ArrowUpRight size={20} className="text-amber-600" />
-        </div>
-
-        <div className="flex items-center gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-5">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-            <Package size={23} />
-          </div>
-
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-blue-900">
-              Commerçants en attente
-            </p>
-            <p className="mt-1 text-2xl font-extrabold text-blue-950">
-              24
-            </p>
-            <p className="text-xs text-blue-700">
-              Demandes de validation
-            </p>
-          </div>
-
-          <ArrowUpRight size={20} className="text-blue-600" />
-        </div>
+      {/* RÉPARTITION */}
+      <section className="grid grid-cols-1 gap-5">
+        <ShopsDistribution
+          activeCount={activeShops}
+          suspendedCount={suspendedShops}
+          total={totalShops}
+        />
       </section>
 
-      {/* GRAPHIQUE ET ACTIVITÉS */}
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="xl:col-span-2">
-          <SalesChart />
-        </div>
-
-        <ActivityPanel />
-      </section>
-
-      {/* TABLEAU DES COMMANDES */}
+      {/* SIGNALEMENTS */}
       <section>
-        <OrdersTable />
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-blue-700">
+              Centre de vigilance
+            </p>
+
+            <h2 className="mt-1 text-lg font-bold text-slate-900">
+              Suivi des signalements
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Consultez les derniers incidents signalés par les utilisateurs.
+            </p>
+          </div>
+
+          {pendingReports > 0 && (
+            <span className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+              <Flag size={15} />
+              {pendingReports} à traiter
+            </span>
+          )}
+        </div>
+
+        <RecentReports reports={latestReports} />
       </section>
 
-      <footer className="border-t border-slate-200 pt-5 text-center text-xs text-slate-400">
-        Vendix Admin · Tableau de bord de démonstration · 2026
+      {/* PIED DE PAGE */}
+      <footer className="flex flex-col items-center justify-between gap-2 border-t border-slate-200 pt-5 text-center sm:flex-row sm:text-left">
+        <p className="text-xs text-slate-400">
+          Vendix Admin · Espace de supervision
+        </p>
+
+        <p className="text-xs text-slate-400">
+          Interface d'administration · 2026
+        </p>
       </footer>
-    </div>
+    </main>
   )
 }
