@@ -1,6 +1,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 
@@ -59,9 +59,11 @@ describe('Authentification administrateur', () => {
 
     renderProtectedRoute()
 
-    expect(screen.getByRole('heading', {
-      name: 'Page de connexion',
-    })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', {
+        name: 'Page de connexion',
+      })
+    ).toBeInTheDocument()
 
     expect(screen.queryByText('Page protégée')).not.toBeInTheDocument()
   })
@@ -71,9 +73,11 @@ describe('Authentification administrateur', () => {
 
     renderProtectedRoute()
 
-    expect(screen.getByRole('heading', {
-      name: 'Page protégée',
-    })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', {
+        name: 'Page protégée',
+      })
+    ).toBeInTheDocument()
   })
 
   it('affiche un message lorsque la connexion échoue', async () => {
@@ -86,8 +90,8 @@ describe('Authentification administrateur', () => {
     renderLoginPage()
 
     await user.type(
-      screen.getByPlaceholderText('admin@vendix.com'),
-      'admin@vendix.com'
+      screen.getByPlaceholderText('+22901XXXXXXXX'),
+      '+2290190000000'
     )
 
     await user.type(
@@ -104,6 +108,11 @@ describe('Authentification administrateur', () => {
     expect(
       await screen.findByText('Identifiants incorrects.')
     ).toBeInTheDocument()
+
+    expect(adminService.login).toHaveBeenCalledWith({
+      phone: '+2290190000000',
+      password: 'motdepasseincorrect',
+    })
   })
 
   it('refuse la connexion à un utilisateur qui n’est pas administrateur', async () => {
@@ -116,8 +125,8 @@ describe('Authentification administrateur', () => {
     renderLoginPage()
 
     await user.type(
-      screen.getByPlaceholderText('admin@vendix.com'),
-      'client@vendix.com'
+      screen.getByPlaceholderText('+22901XXXXXXXX'),
+      '+2290190000000'
     )
 
     await user.type(
@@ -138,7 +147,10 @@ describe('Authentification administrateur', () => {
     ).toBeInTheDocument()
 
     expect(adminService.logout).toHaveBeenCalled()
-    expect(screen.queryByText('Accueil administrateur')).not.toBeInTheDocument()
+
+    expect(
+      screen.queryByText('Accueil administrateur')
+    ).not.toBeInTheDocument()
   })
 
   it('redirige vers la page initialement demandée après connexion', async () => {
@@ -162,8 +174,8 @@ describe('Authentification administrateur', () => {
     ])
 
     await user.type(
-      screen.getByPlaceholderText('admin@vendix.com'),
-      'admin@vendix.com'
+      screen.getByPlaceholderText('+22901XXXXXXXX'),
+      '+2290190000000'
     )
 
     await user.type(
@@ -182,5 +194,10 @@ describe('Authentification administrateur', () => {
         name: 'Gestion des commerçants',
       })
     ).toBeInTheDocument()
+
+    expect(adminService.login).toHaveBeenCalledWith({
+      phone: '+2290190000000',
+      password: 'motdepasse',
+    })
   })
 })

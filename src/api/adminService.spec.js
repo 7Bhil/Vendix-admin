@@ -32,7 +32,7 @@ describe('adminService', () => {
     expect(adminService.isAuthenticated()).toBe(false)
   })
 
-  it('supprime le jeton après une réponse API 401', async () => {
+  it('supprime le jeton et redirige après une réponse API 401', async () => {
     const error = {
       response: { status: 401 },
     }
@@ -45,7 +45,7 @@ describe('adminService', () => {
     expect(redirectMock).toHaveBeenCalledWith('/login')
   })
 
-  it('supprime le jeton et redirige vers login après une réponse API 403', async () => {
+  it('supprime le jeton et redirige après une réponse API 403', async () => {
     const error = {
       response: { status: 403 },
     }
@@ -56,5 +56,20 @@ describe('adminService', () => {
 
     expect(adminService.getToken()).toBeNull()
     expect(redirectMock).toHaveBeenCalledWith('/login')
+  })
+
+  it('ne redirige pas si l’utilisateur est déjà sur la page login', async () => {
+    window.location.pathname = '/login'
+
+    const error = {
+      response: { status: 401 },
+    }
+
+    await expect(
+      adminService.api.interceptors.response.handlers[0].rejected(error)
+    ).rejects.toBe(error)
+
+    expect(adminService.getToken()).toBeNull()
+    expect(redirectMock).not.toHaveBeenCalled()
   })
 })

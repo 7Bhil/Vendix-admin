@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ShieldCheck,
-  Mail,
+  Phone,
   LockKeyhole,
   Eye,
   EyeOff,
@@ -19,12 +19,13 @@ export default function LoginPage() {
   const location = useLocation()
 
   const from = location.state?.from
+
   const redirectTo = from
-  ? `${from.pathname}${from.search || ''}${from.hash || ''}`
-  : '/'
+    ? `${from.pathname}${from.search || ''}${from.hash || ''}`
+    : '/'
 
   const [credentials, setCredentials] = useState({
-    identifier: '',
+    phone: '',
     password: '',
   })
 
@@ -47,7 +48,7 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
 
-    if (!credentials.identifier.trim() || !credentials.password) {
+    if (!credentials.phone.trim() || !credentials.password) {
       setError('Veuillez remplir tous les champs.')
       return
     }
@@ -56,20 +57,22 @@ export default function LoginPage() {
 
     try {
       const data = await adminService.login({
-        identifier: credentials.identifier.trim(),
+        phone: credentials.phone.trim(),
         password: credentials.password,
       })
 
-      // Vérification du rôle retourné par le serveur
+      // Vérification du rôle retourné
+      // Vérification du rôle retourné
       const user = data.user || data.admin
 
-      if (user?.role && user.role !== 'ADMIN') {
+      if (user?.role && user.role === 'ADMIN') {
         adminService.logout()
         setError("Vous n'avez pas les droits d'accès à cette console.")
         return
       }
 
-      navigate(redirectTo, { replace: true })
+    navigate(redirectTo, { replace: true })
+
     } catch (err) {
       setError(err.message || 'Identifiants incorrects.')
     } finally {
@@ -123,33 +126,44 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* Identifiant */}
+            {/* Numéro de téléphone */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Email ou numéro de téléphone
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-slate-300 mb-2"
+              >
+                Numéro de téléphone
               </label>
 
               <div className="relative">
-                <Mail
+                <Phone
                   size={18}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
                 />
 
                 <input
-                  type="text"
-                  name="identifier"
-                  value={credentials.identifier}
+                  id="phone"
+                  type="tel"
+                  name="phone"
+                  value={credentials.phone}
                   onChange={handleChange}
-                  placeholder="admin@vendix.com"
-                  autoComplete="username"
+                  placeholder="+22901XXXXXXXX"
+                  autoComplete="tel"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-slate-600 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition"
                 />
               </div>
+
+              <p className="mt-2 text-xs text-slate-500">
+                Format international : +22901XXXXXXXX
+              </p>
             </div>
 
             {/* Mot de passe */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-slate-300 mb-2"
+              >
                 Mot de passe
               </label>
 
@@ -160,6 +174,7 @@ export default function LoginPage() {
                 />
 
                 <input
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={credentials.password}
@@ -173,7 +188,11 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-teal-400 transition"
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-label={
+                    showPassword
+                      ? 'Masquer le mot de passe'
+                      : 'Afficher le mot de passe'
+                  }
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
