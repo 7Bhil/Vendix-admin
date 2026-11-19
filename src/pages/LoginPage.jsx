@@ -62,10 +62,10 @@ export default function LoginPage() {
       })
 
       // Vérification du rôle retourné
-      // Vérification du rôle retourné
+      
       const user = data.user || data.admin
 
-      if (user?.role && user.role === 'ADMIN') {
+      if (user?.role && user.role !== 'ADMIN') {
         adminService.logout()
         setError("Vous n'avez pas les droits d'accès à cette console.")
         return
