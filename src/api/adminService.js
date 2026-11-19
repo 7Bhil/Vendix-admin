@@ -12,6 +12,7 @@ const adminApi = axios.create({
   },
 })
 
+// Intercepteur des requêtes : ajout automatique du jeton
 adminApi.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY)
 
@@ -21,6 +22,27 @@ adminApi.interceptors.request.use((config) => {
 
   return config
 })
+
+// Intercepteur des réponses : gestion centralisée des erreurs 401 et 403
+adminApi.interceptors.response.use(
+  (response) => response,
+
+  (error) => {
+    const status = error.response?.status
+
+    if (status === 401 || status === 403) {
+      // Supprimer le jeton devenu invalide
+      localStorage.removeItem(TOKEN_KEY)
+
+      // Éviter une redirection inutile si l'utilisateur est déjà sur login
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login')
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
 
 const adminService = {
   async login(credentials) {

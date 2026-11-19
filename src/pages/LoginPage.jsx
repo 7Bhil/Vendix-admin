@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ShieldCheck,
   Mail,
@@ -16,6 +16,12 @@ import adminService from '../api/adminService'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+
+  const from = location.state?.from
+  const redirectTo = from
+  ? `${from.pathname}${from.search || ''}${from.hash || ''}`
+  : '/'
 
   const [credentials, setCredentials] = useState({
     identifier: '',
@@ -63,7 +69,7 @@ export default function LoginPage() {
         return
       }
 
-      navigate('/', { replace: true })
+      navigate(redirectTo, { replace: true })
     } catch (err) {
       setError(err.message || 'Identifiants incorrects.')
     } finally {
