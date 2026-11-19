@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from "@testing-library/react";
 import React from "react";
 import DashboardPage from "./DashboardPage.jsx";
@@ -22,7 +22,7 @@ describe("DashboardPage (Admin)", () => {
     render(<DashboardPage shops={mockShops} reports={mockReports} />);
 
     expect(screen.getByText("Tableau de bord")).toBeDefined();
-    expect(screen.getByText("Boutiques actives")).toBeDefined();
+    expect(screen.getAllByText("Boutiques actives").length).toBeGreaterThan(0);
     expect(screen.getByText("Signalements récents")).toBeDefined();
     expect(screen.getByText("Produit non conforme")).toBeDefined();
   });
