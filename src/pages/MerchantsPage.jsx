@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Search, Store, MapPin, Phone, UserRound } from "lucide-react";
+import { adminService } from "../api/adminService";
 
 
 const statusConfig = {
@@ -28,43 +29,56 @@ export default function MerchantsPage({ shops, setShops }) {
 
   // Motif de suspension
   const [suspensionReason, setSuspensionReason] = useState("");
+  const [isSuspending, setIsSuspending] = useState(false);
+  const [suspensionError, setSuspensionError] = useState("");
 
   // Fermer la fenêtre avec la touche Escape
   useEffect(() => {
     if (!selectedShop) return;
 
     const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setSelectedShop(null);
-        setSuspensionReason("");
-      }
-    };
+  if (event.key === "Escape" && !isSuspending) {
+    setSelectedShop(null);
+    setSuspensionReason("");
+    setSuspensionError("");
+  }
+};
 
     window.addEventListener("keydown", handleEscape);
 
     return () => {
       window.removeEventListener("keydown", handleEscape);
     };
-  }, [selectedShop]);
+  }, [selectedShop, isSuspending]);
 
   // Ouvrir la fenêtre de suspension
   const openSuspensionModal = (shop) => {
-    setSelectedShop(shop);
-    setSuspensionReason("");
-  };
+  setSelectedShop(shop);
+  setSuspensionReason("");
+  setSuspensionError("");
+};
 
-  // Annuler la suspension
-  const closeSuspensionModal = () => {
-    setSelectedShop(null);
-    setSuspensionReason("");
-  };
+const closeSuspensionModal = () => {
+  if (isSuspending) return;
+
+  setSelectedShop(null);
+  setSuspensionReason("");
+  setSuspensionError("");
+};
 
   // Confirmer la suspension
-  const handleSuspendShop = () => {
-    const reason = suspensionReason.trim();
+ const handleSuspendShop = async () => {
+  const reason = suspensionReason.trim();
 
-    if (!selectedShop || !reason) return;
+  if (!selectedShop || !reason || isSuspending) return;
 
+  try {
+    setIsSuspending(true);
+    setSuspensionError("");
+
+    await adminService.suspendMerchant(selectedShop.id, reason);
+
+    // Modifier la liste uniquement après confirmation du service.
     setShops((currentShops) =>
       currentShops.map((shop) =>
         shop.id === selectedShop.id
@@ -77,9 +91,17 @@ export default function MerchantsPage({ shops, setShops }) {
       ),
     );
 
-    closeSuspensionModal();
-  };
-
+    setSelectedShop(null);
+setSuspensionReason("");
+setSuspensionError("");
+  } catch (error) {
+    setSuspensionError(
+      error.message || "Impossible de suspendre cette boutique.",
+    );
+  } finally {
+    setIsSuspending(false);
+  }
+};
   // Recherche par boutique, commerçant ou téléphone
   const filteredShops = shops.filter((shop) => {
     const query = searchTerm.trim().toLowerCase();
@@ -389,24 +411,30 @@ export default function MerchantsPage({ shops, setShops }) {
                     placeholder="Expliquez la raison de la suspension..."
                     className="mt-2 w-full resize-none rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
                   />
+                  {suspensionError && (
+  <p role="alert" className="mt-2 text-sm text-red-600">
+    {suspensionError}
+  </p>
+)}
 
                   <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button
                       type="button"
                       onClick={closeSuspensionModal}
+                      disabled={isSuspending}
                       className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
                     >
                       Annuler
                     </button>
 
                     <button
-                      type="button"
-                      onClick={handleSuspendShop}
-                      disabled={!suspensionReason.trim()}
-                      className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Confirmer la suspension
-                    </button>
+  type="button"
+  onClick={handleSuspendShop}
+  disabled={!suspensionReason.trim() || isSuspending}
+  className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+>
+  {isSuspending ? "Suspension en cours..." : "Confirmer la suspension"}
+</button>
                   </div>
                 </div>
               </div>
