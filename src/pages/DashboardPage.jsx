@@ -10,7 +10,6 @@ import {
   XCircle,
 } from 'lucide-react'
 
-import adminData from '../mocks/adminData.json'
 
 // Formater les montants en FCFA
 const formatCurrency = (amount) =>
@@ -49,8 +48,7 @@ const reportStatus = {
   },
 }
 
-function DashboardPage({ shops = adminData.shops, reports = adminData.reports }) {
-  const { dashboard } = adminData
+function DashboardPage({ shops = [], reports = [], dashboardStats = {} }) {
 
   // Calculer les statistiques à partir des données
   const totalShops = shops.length
@@ -92,7 +90,7 @@ function DashboardPage({ shops = adminData.shops, reports = adminData.reports })
     },
     {
       label: 'Volume des transactions',
-      value: formatCurrency(dashboard.transactionVolumeXof),
+      value: formatCurrency(dashboardStats.transactionVolumeXof ?? 0),
       description: 'Volume global enregistré',
       icon: CircleDollarSign,
       iconStyle: 'bg-violet-50 text-violet-700',
