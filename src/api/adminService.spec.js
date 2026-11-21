@@ -1,75 +1,86 @@
-
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import adminService from './adminService'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import adminService, { resetMockState } from './adminService';
 
 describe('adminService', () => {
-  let redirectMock
+  let redirectMock;
 
   beforeEach(() => {
-    localStorage.clear()
-    localStorage.setItem('vendix_admin_token', 'fake-test-token')
+    resetMockState();
+    localStorage.clear();
+    localStorage.setItem('vendix_admin_token', 'fake-test-token');
 
-    redirectMock = vi.fn()
+    redirectMock = vi.fn();
 
     vi.stubGlobal('window', {
       location: {
         pathname: '/',
         replace: redirectMock,
       },
-    })
-  })
+    });
+  });
 
   afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+    vi.unstubAllGlobals();
+  });
 
   it('supprime le jeton lors de la déconnexion', () => {
-    expect(adminService.getToken()).toBe('fake-test-token')
+    expect(adminService.getToken()).toBe('fake-test-token');
 
-    adminService.logout()
+    adminService.logout();
 
-    expect(adminService.getToken()).toBeNull()
-    expect(adminService.isAuthenticated()).toBe(false)
-  })
+    expect(adminService.getToken()).toBeNull();
+    expect(adminService.isAuthenticated()).toBe(false);
+  });
 
   it('supprime le jeton et redirige après une réponse API 401', async () => {
     const error = {
       response: { status: 401 },
-    }
+    };
 
     await expect(
-      adminService.api.interceptors.response.handlers[0].rejected(error)
-    ).rejects.toBe(error)
+      adminService.api.interceptors.response.handlers[0].rejected(error),
+    ).rejects.toBe(error);
 
-    expect(adminService.getToken()).toBeNull()
-    expect(redirectMock).toHaveBeenCalledWith('/login')
-  })
+    expect(adminService.getToken()).toBeNull();
+    expect(redirectMock).toHaveBeenCalledWith('/login');
+  });
 
   it('supprime le jeton et redirige après une réponse API 403', async () => {
     const error = {
       response: { status: 403 },
-    }
+    };
 
     await expect(
-      adminService.api.interceptors.response.handlers[0].rejected(error)
-    ).rejects.toBe(error)
+      adminService.api.interceptors.response.handlers[0].rejected(error),
+    ).rejects.toBe(error);
 
-    expect(adminService.getToken()).toBeNull()
-    expect(redirectMock).toHaveBeenCalledWith('/login')
-  })
+    expect(adminService.getToken()).toBeNull();
+    expect(redirectMock).toHaveBeenCalledWith('/login');
+  });
 
   it('ne redirige pas si l’utilisateur est déjà sur la page login', async () => {
-    window.location.pathname = '/login'
+    window.location.pathname = '/login';
 
     const error = {
       response: { status: 401 },
-    }
+    };
 
     await expect(
-      adminService.api.interceptors.response.handlers[0].rejected(error)
-    ).rejects.toBe(error)
+      adminService.api.interceptors.response.handlers[0].rejected(error),
+    ).rejects.toBe(error);
 
-    expect(adminService.getToken()).toBeNull()
-    expect(redirectMock).not.toHaveBeenCalled()
-  })
-})
+    expect(adminService.getToken()).toBeNull();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it('récupère les statistiques et persiste les actions en mode mock', async () => {
+    const stats = await adminService.getDashboardStats();
+    expect(stats.shops).toBeInstanceOf(Array);
+    expect(stats.reports).toBeInstanceOf(Array);
+
+    const targetShop = stats.shops[0];
+    await adminService.suspendMerchant(targetShop.id, 'Non-respect des règles');
+    const shopsAfter = await adminService.getMerchants();
+    expect(shopsAfter.find((s) => s.id === targetShop.id).status).toBe('suspended');
+  });
+});
