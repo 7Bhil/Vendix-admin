@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Search, Store, MapPin, Phone, UserRound } from "lucide-react";
 import { adminService } from "../api/adminService";
 
-
 const statusConfig = {
   active: {
     label: "Actif",
@@ -37,12 +36,12 @@ export default function MerchantsPage({ shops, setShops }) {
     if (!selectedShop) return;
 
     const handleEscape = (event) => {
-  if (event.key === "Escape" && !isSuspending) {
-    setSelectedShop(null);
-    setSuspensionReason("");
-    setSuspensionError("");
-  }
-};
+      if (event.key === "Escape" && !isSuspending) {
+        setSelectedShop(null);
+        setSuspensionReason("");
+        setSuspensionError("");
+      }
+    };
 
     window.addEventListener("keydown", handleEscape);
 
@@ -53,55 +52,55 @@ export default function MerchantsPage({ shops, setShops }) {
 
   // Ouvrir la fenêtre de suspension
   const openSuspensionModal = (shop) => {
-  setSelectedShop(shop);
-  setSuspensionReason("");
-  setSuspensionError("");
-};
-
-const closeSuspensionModal = () => {
-  if (isSuspending) return;
-
-  setSelectedShop(null);
-  setSuspensionReason("");
-  setSuspensionError("");
-};
-
-  // Confirmer la suspension
- const handleSuspendShop = async () => {
-  const reason = suspensionReason.trim();
-
-  if (!selectedShop || !reason || isSuspending) return;
-
-  try {
-    setIsSuspending(true);
+    setSelectedShop(shop);
+    setSuspensionReason("");
     setSuspensionError("");
+  };
 
-    await adminService.suspendMerchant(selectedShop.id, reason);
-
-    // Modifier la liste uniquement après confirmation du service.
-    setShops((currentShops) =>
-      currentShops.map((shop) =>
-        shop.id === selectedShop.id
-          ? {
-              ...shop,
-              status: "suspended",
-              suspensionReason: reason,
-            }
-          : shop,
-      ),
-    );
+  const closeSuspensionModal = () => {
+    if (isSuspending) return;
 
     setSelectedShop(null);
-setSuspensionReason("");
-setSuspensionError("");
-  } catch (error) {
-    setSuspensionError(
-      error.message || "Impossible de suspendre cette boutique.",
-    );
-  } finally {
-    setIsSuspending(false);
-  }
-};
+    setSuspensionReason("");
+    setSuspensionError("");
+  };
+
+  // Confirmer la suspension
+  const handleSuspendShop = async () => {
+    const reason = suspensionReason.trim();
+
+    if (!selectedShop || !reason || isSuspending) return;
+
+    try {
+      setIsSuspending(true);
+      setSuspensionError("");
+
+      await adminService.suspendMerchant(selectedShop.id, reason);
+
+      // Modifier la liste uniquement après confirmation du service.
+      setShops((currentShops) =>
+        currentShops.map((shop) =>
+          shop.id === selectedShop.id
+            ? {
+                ...shop,
+                status: "suspended",
+                suspensionReason: reason,
+              }
+            : shop,
+        ),
+      );
+
+      setSelectedShop(null);
+      setSuspensionReason("");
+      setSuspensionError("");
+    } catch (error) {
+      setSuspensionError(
+        error.message || "Impossible de suspendre cette boutique.",
+      );
+    } finally {
+      setIsSuspending(false);
+    }
+  };
   // Recherche par boutique, commerçant ou téléphone
   const filteredShops = shops.filter((shop) => {
     const query = searchTerm.trim().toLowerCase();
@@ -412,10 +411,10 @@ setSuspensionError("");
                     className="mt-2 w-full resize-none rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-800 outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
                   />
                   {suspensionError && (
-  <p role="alert" className="mt-2 text-sm text-red-600">
-    {suspensionError}
-  </p>
-)}
+                    <p role="alert" className="mt-2 text-sm text-red-600">
+                      {suspensionError}
+                    </p>
+                  )}
 
                   <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                     <button
@@ -428,13 +427,15 @@ setSuspensionError("");
                     </button>
 
                     <button
-  type="button"
-  onClick={handleSuspendShop}
-  disabled={!suspensionReason.trim() || isSuspending}
-  className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
->
-  {isSuspending ? "Suspension en cours..." : "Confirmer la suspension"}
-</button>
+                      type="button"
+                      onClick={handleSuspendShop}
+                      disabled={!suspensionReason.trim() || isSuspending}
+                      className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {isSuspending
+                        ? "Suspension en cours..."
+                        : "Confirmer la suspension"}
+                    </button>
                   </div>
                 </div>
               </div>
