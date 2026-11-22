@@ -19,11 +19,13 @@ describe("DashboardPage (Admin)", () => {
       },
     ];
 
-    render(<DashboardPage shops={mockShops} reports={mockReports} />);
+    render(<DashboardPage shops={mockShops} reports={mockReports} dashboardStats={{ transactionVolumeXof: 987654 }} />);
 
     expect(screen.getByText("Tableau de bord")).toBeDefined();
     expect(screen.getAllByText("Boutiques actives").length).toBeGreaterThan(0);
     expect(screen.getByText("Signalements récents")).toBeDefined();
     expect(screen.getByText("Produit non conforme")).toBeDefined();
+
+    expect(screen.getByText((content) =>content.replace(/\s/g, '') === '987654FCFA')).toBeDefined();
   });
 });

@@ -1,9 +1,8 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import AdminProtectedRoute from "../components/AdminProtectedRoute";
 import AdminLayout from "../components/AdminLayout";
-
+import LoginPage from "../pages/LoginPage";
 import DashboardPage from "../pages/DashboardPage";
 import MerchantsPage from "../pages/MerchantsPage";
 import ReportsPage from "../pages/ReportsPage";
@@ -13,35 +12,28 @@ export default function AppRoutes({
   setShops,
   reports,
   setReports,
+  dashboardStats,
 }) {
   return (
     <Routes>
-      {/* Protection de toutes les pages administrateur */}
+      <Route path="/login" element={<LoginPage />} />
+
       <Route element={<AdminProtectedRoute />}>
         <Route element={<AdminLayout />}>
-          {/* Tableau de bord */}
           <Route
             path="/"
             element={
               <DashboardPage
                 shops={shops}
                 reports={reports}
+                dashboardStats={dashboardStats}
               />
             }
           />
-
-          {/* Gestion des commerçants */}
           <Route
             path="/commercants"
-            element={
-              <MerchantsPage
-                shops={shops}
-                setShops={setShops}
-              />
-            }
+            element={<MerchantsPage shops={shops} setShops={setShops} />}
           />
-
-          {/* Gestion des signalements */}
           <Route
             path="/signalements"
             element={
@@ -56,11 +48,7 @@ export default function AppRoutes({
         </Route>
       </Route>
 
-      {/* Redirection des routes inconnues */}
-      <Route
-        path="*"
-        element={<Navigate to="/" replace />}
-      />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

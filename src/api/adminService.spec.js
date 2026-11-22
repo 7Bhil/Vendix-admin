@@ -20,6 +20,7 @@ describe('adminService', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -71,6 +72,47 @@ describe('adminService', () => {
 
     expect(adminService.getToken()).toBeNull();
     expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it('envoie { phone, password } à POST /auth/login en mode réel et stocke le jeton pour ADMIN', async () => {
+    localStorage.clear();
+    const postSpy = vi.spyOn(adminService.api, 'post').mockResolvedValueOnce({
+      data: {
+        access_token: 'real-jwt-admin',
+        user: { id: 'u-1', phone: '+2290190000000', role: 'ADMIN' },
+      },
+    });
+
+    const result = await adminService.login(
+      { phone: '+229 01 90 00 00 00', password: 'SecretPassword123' },
+      { useMock: false },
+    );
+
+    expect(postSpy).toHaveBeenCalledWith('/auth/login', {
+      phone: '+2290190000000',
+      password: 'SecretPassword123',
+    });
+    expect(result.access_token).toBe('real-jwt-admin');
+    expect(adminService.getToken()).toBe('real-jwt-admin');
+  });
+
+  it('refuse tout utilisateur dont le rôle n’est pas strictement ADMIN', async () => {
+    localStorage.clear();
+    vi.spyOn(adminService.api, 'post').mockResolvedValueOnce({
+      data: {
+        access_token: 'merchant-jwt',
+        user: { id: 'u-2', phone: '+2290197001122', role: 'MERCHANT' },
+      },
+    });
+
+    await expect(
+      adminService.login(
+        { phone: '+2290197001122', password: 'SecretPassword123' },
+        { useMock: false },
+      ),
+    ).rejects.toThrow('Accès refusé : droits Super-Admin requis.');
+
+    expect(adminService.getToken()).toBeNull();
   });
 
   it('récupère les statistiques et persiste les actions en mode mock', async () => {

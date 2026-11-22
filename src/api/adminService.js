@@ -7,7 +7,9 @@ const TOKEN_KEY = 'vendix_admin_token';
 const DEMO_PHONE = '+2290190000000';
 const DEMO_PASSWORD = 'Admin123456';
 
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false';
+export const USE_MOCK =
+  import.meta.env.VITE_USE_MOCK !== 'false' &&
+  import.meta.env.VITE_USE_MOCKS !== 'false';
 
 let mockState = {
   dashboard: { ...initialData.dashboard },
@@ -66,19 +68,24 @@ adminApi.interceptors.response.use(
 );
 
 export const adminService = {
-  async login(credentials) {
-    try {
-      const phone = credentials.phone?.trim().replace(/[\s().-]/g, '');
-      const password = credentials.password;
+  async login(credentials, options = {}) {
+    const useMock = options.useMock ?? USE_MOCK;
+    const phone = credentials.phone?.trim().replace(/[\s().-]/g, '');
+    const password = credentials.password;
 
-      const phoneRegex = /^\+22901\d{8}$/;
+    const phoneRegex = /^\+22901\d{8}$/;
 
-      if (!phoneRegex.test(phone || '')) {
-        throw new Error(
-          'Veuillez saisir un numéro béninois au format +22901XXXXXXXX.',
-        );
-      }
+    if (!phoneRegex.test(phone || '')) {
+      throw new Error(
+        'Veuillez saisir un numéro béninois au format +22901XXXXXXXX.',
+      );
+    }
 
+    if (!password) {
+      throw new Error('Veuillez saisir votre mot de passe.');
+    }
+
+    if (useMock) {
       if (phone !== DEMO_PHONE || password !== DEMO_PASSWORD) {
         throw new Error('Numéro de téléphone ou mot de passe incorrect.');
       }
@@ -94,9 +101,23 @@ export const adminService = {
           role: 'ADMIN',
         },
       };
-    } catch (error) {
-      throw new Error(error.message || 'Échec de la connexion.');
     }
+
+    const { data } = await adminApi.post('/auth/login', { phone, password });
+    const role = data?.user?.role ?? data?.admin?.role;
+
+    if (role !== 'ADMIN') {
+      localStorage.removeItem(TOKEN_KEY);
+      throw new Error('Accès refusé : droits Super-Admin requis.');
+    }
+
+    const token = data?.access_token ?? data?.accessToken;
+    if (!token) {
+      throw new Error('Jeton d’authentification manquant dans la réponse.');
+    }
+
+    localStorage.setItem(TOKEN_KEY, token);
+    return data;
   },
 
   getToken() {
