@@ -172,4 +172,28 @@ describe('ReportsPage (Admin)', () => {
     expect(setReports).not.toHaveBeenCalled()
     expect(setShops).not.toHaveBeenCalled()
   })
+
+  it('ne modifie pas le signalement si la suspension de la boutique échoue', async () => {
+    adminService.suspendMerchant.mockRejectedValue(
+      new Error('Échec de suspension'),
+    )
+
+    openReportModal()
+
+    fireEvent.change(
+      screen.getByLabelText(/Motif ou commentaire de traitement/i),
+      { target: { value: 'Fraude avérée' } },
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Suspendre la boutique' }),
+    )
+
+    const errorMessage = await screen.findByRole('alert')
+
+    expect(errorMessage.textContent).toContain('Échec de suspension')
+    expect(adminService.updateReportStatus).not.toHaveBeenCalled()
+    expect(setReports).not.toHaveBeenCalled()
+    expect(setShops).not.toHaveBeenCalled()
+  })
 })

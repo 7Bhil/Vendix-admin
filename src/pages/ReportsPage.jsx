@@ -83,25 +83,9 @@ export default function ReportsPage({ setShops, reports = [], setReports }) {
       setIsProcessing(true);
       setActionError("");
 
-      await adminService.updateReportStatus(
-        selectedReport.id,
-        action,
-        resolution,
-      );
-
       if (action === "suspended") {
         await adminService.suspendMerchant(selectedReport.shopId, reason);
-      }
 
-      setReports((currentReports) =>
-        currentReports.map((report) =>
-          report.id === selectedReport.id
-            ? { ...report, status: action, resolution }
-            : report,
-        ),
-      );
-
-      if (action === "suspended") {
         setShops((currentShops) =>
           currentShops.map((shop) =>
             shop.id === selectedReport.shopId
@@ -114,6 +98,20 @@ export default function ReportsPage({ setShops, reports = [], setReports }) {
           ),
         );
       }
+
+      await adminService.updateReportStatus(
+        selectedReport.id,
+        action,
+        resolution,
+      );
+
+      setReports((currentReports) =>
+        currentReports.map((report) =>
+          report.id === selectedReport.id
+            ? { ...report, status: action, resolution }
+            : report,
+        ),
+      );
 
       setSelectedReport(null);
       setResolutionNote("");
