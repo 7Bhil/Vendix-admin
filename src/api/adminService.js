@@ -1,7 +1,11 @@
+import axios from 'axios';
 import initialData from '../mocks/adminData.json';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const TOKEN_KEY = 'vendix_admin_token';
+
+const DEMO_PHONE = '+2290190000000';
+const DEMO_PASSWORD = 'Admin123456';
 
 export const USE_MOCK =
   import.meta.env.VITE_USE_MOCK !== 'false' &&
@@ -13,9 +17,6 @@ let mockState = {
   reports: [...initialData.reports],
 };
 
-/**
- * Réinitialise l'état mock (principalement pour les tests)
- */
 export function resetMockState() {
   mockState = {
     dashboard: { ...initialData.dashboard },
@@ -24,9 +25,6 @@ export function resetMockState() {
   };
 }
 
-/**
- * Gestion du jeton d'authentification Super-Admin
- */
 export const tokenStorage = {
   getToken: () => localStorage.getItem(TOKEN_KEY),
   setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
@@ -34,87 +32,106 @@ export const tokenStorage = {
   hasToken: () => Boolean(localStorage.getItem(TOKEN_KEY)),
 };
 
-/**
- * Exécute une requête HTTP avec gestion automatique du token JWT
- */
-async function request(endpoint, options = {}) {
-  const token = tokenStorage.getToken();
-  const headers = {
+const adminApi = axios.create({
+  baseURL: API_URL,
+  headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  };
+  },
+});
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+adminApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY);
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    const error = new Error(errorBody.message || `Erreur HTTP ${response.status}`);
-    error.status = response.status;
-    error.data = errorBody;
-    throw error;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
-  const payload = await response.json();
-  if (payload?.success === false) {
-    throw new Error(payload.message || 'L’opération a échoué.');
-  }
+  return config;
+});
 
-  return payload?.data ?? payload;
-}
+adminApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
 
-/**
- * Service API d'administration Vendix avec bascule mock / réel
- */
-export const adminService = {
-  /**
-   * Connexion administrateur
-   */
-  async login(credentials) {
-    if (USE_MOCK) {
-      if (credentials.password === 'admin123' || credentials.identifier === 'admin@vendix.bj') {
-        const fakeToken = 'mock_jwt_superadmin_token_xyz';
-        tokenStorage.setToken(fakeToken);
-        return {
-          accessToken: fakeToken,
-          admin: {
-            id: 'admin-001',
-            email: 'admin@vendix.bj',
-            role: 'ADMIN',
-          },
-        };
+    if (status === 401 || status === 403) {
+      localStorage.removeItem(TOKEN_KEY);
+
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login');
       }
-      const error = new Error('Identifiants administrateur incorrects');
-      error.status = 401;
-      throw error;
     }
 
-    const data = await request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    return Promise.reject(error);
+  },
+);
 
-    if (data?.accessToken) {
-      tokenStorage.setToken(data.accessToken);
+export const adminService = {
+  async login(credentials, options = {}) {
+    const useMock = options.useMock ?? USE_MOCK;
+    const phone = credentials.phone?.trim().replace(/[\s().-]/g, '');
+    const password = credentials.password;
+
+    const phoneRegex = /^\+22901\d{8}$/;
+
+    if (!phoneRegex.test(phone || '')) {
+      throw new Error(
+        'Veuillez saisir un numéro béninois au format +22901XXXXXXXX.',
+      );
     }
 
+    if (!password) {
+      throw new Error('Veuillez saisir votre mot de passe.');
+    }
+
+    if (useMock) {
+      if (phone !== DEMO_PHONE || password !== DEMO_PASSWORD) {
+        throw new Error('Numéro de téléphone ou mot de passe incorrect.');
+      }
+
+      const token = 'vendix-demo-admin-token';
+      localStorage.setItem(TOKEN_KEY, token);
+
+      return {
+        access_token: token,
+        accessToken: token,
+        user: {
+          phone: DEMO_PHONE,
+          role: 'ADMIN',
+        },
+      };
+    }
+
+    const { data } = await adminApi.post('/auth/login', { phone, password });
+    const role = data?.user?.role ?? data?.admin?.role;
+
+    if (role !== 'ADMIN') {
+      localStorage.removeItem(TOKEN_KEY);
+      throw new Error('Accès refusé : droits Super-Admin requis.');
+    }
+
+    const token = data?.access_token ?? data?.accessToken;
+    if (!token) {
+      throw new Error('Jeton d’authentification manquant dans la réponse.');
+    }
+
+    localStorage.setItem(TOKEN_KEY, token);
     return data;
   },
 
-  /**
-   * Déconnexion administrateur
-   */
-  logout() {
-    tokenStorage.removeToken();
+  getToken() {
+    return localStorage.getItem(TOKEN_KEY);
   },
 
-  /**
-   * Indicateurs consolidés du tableau de bord
-   */
+  isAuthenticated() {
+    return Boolean(this.getToken());
+  },
+
+  logout() {
+    localStorage.removeItem(TOKEN_KEY);
+  },
+
   async getDashboardStats() {
     if (USE_MOCK) {
       return {
@@ -125,23 +142,19 @@ export const adminService = {
       };
     }
 
-    return request('/admin/dashboard');
+    const { data } = await adminApi.get('/admin/dashboard');
+    return data;
   },
 
-  /**
-   * Liste des commerçants et boutiques
-   */
   async getMerchants() {
     if (USE_MOCK) {
       return [...mockState.shops];
     }
 
-    return request('/admin/merchants');
+    const { data } = await adminApi.get('/admin/merchants');
+    return data;
   },
 
-  /**
-   * Suspendre une boutique
-   */
   async suspendMerchant(shopId, reason) {
     if (USE_MOCK) {
       mockState.shops = mockState.shops.map((shop) =>
@@ -149,35 +162,24 @@ export const adminService = {
           ? { ...shop, status: 'suspended', suspensionReason: reason }
           : shop,
       );
-      return {
-        success: true,
-        shopId,
-        status: 'suspended',
-        reason,
-        data: mockState.shops.find((s) => s.id === Number(shopId) || s.id === shopId),
-      };
+      return { success: true, shopId, status: 'suspended', reason };
     }
 
-    return request(`/admin/merchants/${shopId}/suspend`, {
-      method: 'POST',
-      body: JSON.stringify({ reason }),
+    const { data } = await adminApi.post(`/admin/merchants/${shopId}/suspend`, {
+      reason,
     });
+    return data;
   },
 
-  /**
-   * Liste des signalements
-   */
   async getReports() {
     if (USE_MOCK) {
       return [...mockState.reports];
     }
 
-    return request('/admin/reports');
+    const { data } = await adminApi.get('/admin/reports');
+    return data;
   },
 
-  /**
-   * Mettre à jour le statut d'un signalement
-   */
   async updateReportStatus(reportId, status, resolution = '') {
     if (USE_MOCK) {
       mockState.reports = mockState.reports.map((report) =>
@@ -185,18 +187,17 @@ export const adminService = {
           ? { ...report, status, resolution }
           : report,
       );
-      return {
-        success: true,
-        reportId,
-        status,
-        resolution,
-        data: mockState.reports.find((r) => r.id === reportId),
-      };
+      return { success: true, reportId, status, resolution };
     }
 
-    return request(`/admin/reports/${reportId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status, resolutionNote: resolution }),
+    const { data } = await adminApi.patch(`/admin/reports/${reportId}`, {
+      status,
+      resolutionNote: resolution,
     });
+    return data;
   },
+
+  api: adminApi,
 };
+
+export default adminService;

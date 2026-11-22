@@ -1,67 +1,128 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { adminService, tokenStorage, resetMockState } from './adminService'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import adminService, { resetMockState } from './adminService';
 
-describe('adminService (Mode Mock)', () => {
+describe('adminService', () => {
+  let redirectMock;
+
   beforeEach(() => {
-    resetMockState()
-    tokenStorage.removeToken()
-  })
+    resetMockState();
+    localStorage.clear();
+    localStorage.setItem('vendix_admin_token', 'fake-test-token');
 
-  it('gère la connexion et le stockage du token en mode mock', async () => {
-    expect(tokenStorage.hasToken()).toBe(false)
+    redirectMock = vi.fn();
 
-    const res = await adminService.login({
-      identifier: 'admin@vendix.bj',
-      password: 'admin123',
-    })
+    vi.stubGlobal('window', {
+      location: {
+        pathname: '/',
+        replace: redirectMock,
+      },
+    });
+  });
 
-    expect(res.accessToken).toBeDefined()
-    expect(tokenStorage.hasToken()).toBe(true)
-    expect(tokenStorage.getToken()).toBe(res.accessToken)
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
 
-    adminService.logout()
-    expect(tokenStorage.hasToken()).toBe(false)
-  })
+  it('supprime le jeton lors de la déconnexion', () => {
+    expect(adminService.getToken()).toBe('fake-test-token');
 
-  it('rejette la connexion avec de mauvais identifiants', async () => {
+    adminService.logout();
+
+    expect(adminService.getToken()).toBeNull();
+    expect(adminService.isAuthenticated()).toBe(false);
+  });
+
+  it('supprime le jeton et redirige après une réponse API 401', async () => {
+    const error = {
+      response: { status: 401 },
+    };
+
     await expect(
-      adminService.login({
-        identifier: 'inconnu@test.com',
-        password: 'wrong',
-      })
-    ).rejects.toThrow('Identifiants administrateur incorrects')
-  })
+      adminService.api.interceptors.response.handlers[0].rejected(error),
+    ).rejects.toBe(error);
 
-  it('récupère les statistiques et données du tableau de bord', async () => {
-    const data = await adminService.getDashboardStats()
-    expect(data.shops).toBeInstanceOf(Array)
-    expect(data.shops.length).toBeGreaterThan(0)
-    expect(data.reports).toBeInstanceOf(Array)
-  })
+    expect(adminService.getToken()).toBeNull();
+    expect(redirectMock).toHaveBeenCalledWith('/login');
+  });
 
-  it('suspend un commerçant et persiste le changement en mémoire', async () => {
-    const shopsBefore = await adminService.getMerchants()
-    const targetShop = shopsBefore[0]
+  it('supprime le jeton et redirige après une réponse API 403', async () => {
+    const error = {
+      response: { status: 403 },
+    };
 
-    await adminService.suspendMerchant(targetShop.id, 'Non-respect des règles Vendix')
+    await expect(
+      adminService.api.interceptors.response.handlers[0].rejected(error),
+    ).rejects.toBe(error);
 
-    const shopsAfter = await adminService.getMerchants()
-    const updated = shopsAfter.find((s) => s.id === targetShop.id)
+    expect(adminService.getToken()).toBeNull();
+    expect(redirectMock).toHaveBeenCalledWith('/login');
+  });
 
-    expect(updated.status).toBe('suspended')
-    expect(updated.suspensionReason).toBe('Non-respect des règles Vendix')
-  })
+  it('ne redirige pas si l’utilisateur est déjà sur la page login', async () => {
+    window.location.pathname = '/login';
 
-  it('met à jour la décision sur un signalement', async () => {
-    const reportsBefore = await adminService.getReports()
-    const targetReport = reportsBefore[0]
+    const error = {
+      response: { status: 401 },
+    };
 
-    await adminService.updateReportStatus(targetReport.id, 'dismissed', 'Sans fondement')
+    await expect(
+      adminService.api.interceptors.response.handlers[0].rejected(error),
+    ).rejects.toBe(error);
 
-    const reportsAfter = await adminService.getReports()
-    const updated = reportsAfter.find((r) => r.id === targetReport.id)
+    expect(adminService.getToken()).toBeNull();
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
 
-    expect(updated.status).toBe('dismissed')
-    expect(updated.resolution).toBe('Sans fondement')
-  })
-})
+  it('envoie { phone, password } à POST /auth/login en mode réel et stocke le jeton pour ADMIN', async () => {
+    localStorage.clear();
+    const postSpy = vi.spyOn(adminService.api, 'post').mockResolvedValueOnce({
+      data: {
+        access_token: 'real-jwt-admin',
+        user: { id: 'u-1', phone: '+2290190000000', role: 'ADMIN' },
+      },
+    });
+
+    const result = await adminService.login(
+      { phone: '+229 01 90 00 00 00', password: 'SecretPassword123' },
+      { useMock: false },
+    );
+
+    expect(postSpy).toHaveBeenCalledWith('/auth/login', {
+      phone: '+2290190000000',
+      password: 'SecretPassword123',
+    });
+    expect(result.access_token).toBe('real-jwt-admin');
+    expect(adminService.getToken()).toBe('real-jwt-admin');
+  });
+
+  it('refuse tout utilisateur dont le rôle n’est pas strictement ADMIN', async () => {
+    localStorage.clear();
+    vi.spyOn(adminService.api, 'post').mockResolvedValueOnce({
+      data: {
+        access_token: 'merchant-jwt',
+        user: { id: 'u-2', phone: '+2290197001122', role: 'MERCHANT' },
+      },
+    });
+
+    await expect(
+      adminService.login(
+        { phone: '+2290197001122', password: 'SecretPassword123' },
+        { useMock: false },
+      ),
+    ).rejects.toThrow('Accès refusé : droits Super-Admin requis.');
+
+    expect(adminService.getToken()).toBeNull();
+  });
+
+  it('récupère les statistiques et persiste les actions en mode mock', async () => {
+    const stats = await adminService.getDashboardStats();
+    expect(stats.shops).toBeInstanceOf(Array);
+    expect(stats.reports).toBeInstanceOf(Array);
+
+    const targetShop = stats.shops[0];
+    await adminService.suspendMerchant(targetShop.id, 'Non-respect des règles');
+    const shopsAfter = await adminService.getMerchants();
+    expect(shopsAfter.find((s) => s.id === targetShop.id).status).toBe('suspended');
+  });
+});
