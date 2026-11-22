@@ -1,119 +1,138 @@
+import { useCallback, useEffect, useState } from "react";
+import { Search } from "lucide-react";
 
-import { useEffect, useState } from 'react'
-import { Search } from 'lucide-react'
-
-import adminData from '../mocks/adminData.json'
+import { adminService } from "../api/adminService";
 
 const statusConfig = {
   pending: {
-    label: 'En attente',
-    style: 'bg-amber-50 text-amber-700',
+    label: "En attente",
+    style: "bg-amber-50 text-amber-700",
   },
   dismissed: {
-    label: 'Classé sans suite',
-    style: 'bg-slate-100 text-slate-700',
+    label: "Classé sans suite",
+    style: "bg-slate-100 text-slate-700",
   },
   warning: {
-    label: 'Avertissement envoyé',
-    style: 'bg-blue-50 text-blue-700',
+    label: "Avertissement envoyé",
+    style: "bg-blue-50 text-blue-700",
   },
   suspended: {
-    label: 'Boutique suspendue',
-    style: 'bg-rose-50 text-rose-700',
+    label: "Boutique suspendue",
+    style: "bg-rose-50 text-rose-700",
   },
-}
+};
 
-export default function ReportsPage({ setShops, reports = adminData.reports, setReports }) {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [activeFilter, setActiveFilter] = useState('all')
-  const [selectedReport, setSelectedReport] = useState(null)
-const [resolutionNote, setResolutionNote] = useState('')
+export default function ReportsPage({ setShops, reports = [], setReports }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [resolutionNote, setResolutionNote] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [actionError, setActionError] = useState("");
 
-    useEffect(() => {
-    if (!selectedReport) return
+  const closeReportModal = useCallback(() => {
+    if (isProcessing) return;
+
+    setSelectedReport(null);
+    setResolutionNote("");
+    setActionError("");
+  }, [isProcessing]);
+
+  useEffect(() => {
+    if (!selectedReport) return;
 
     const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        setSelectedReport(null)
+      if (event.key === "Escape") {
+        closeReportModal();
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleEscape)
+    window.addEventListener("keydown", handleEscape);
 
     return () => {
-      window.removeEventListener('keydown', handleEscape)
-    }
-  }, [selectedReport])
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [selectedReport, closeReportModal]);
 
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
       report.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.reporter.toLowerCase().includes(searchTerm.toLowerCase())
+      report.reporter.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilter =
-      activeFilter === 'all' || report.status === activeFilter
+      activeFilter === "all" || report.status === activeFilter;
 
-    return matchesSearch && matchesFilter
-  })
+    return matchesSearch && matchesFilter;
+  });
 
-const handleReportAction = (action) => {
-  if (!selectedReport) return
+  const handleReportAction = async (action) => {
+    if (!selectedReport || isProcessing) return;
 
-  const reason = resolutionNote.trim()
+    const reason = resolutionNote.trim();
 
-  // Exiger un motif pour suspendre une boutique.
-  if (action === 'suspended' && !reason) return
+    if (action === "suspended" && !reason) return;
 
-  const resolution =
-    reason ||
-    (action === 'dismissed'
-      ? 'Signalement classé sans suite.'
-      : 'Un avertissement a été adressé au commerçant.')
+    const resolution =
+      reason ||
+      (action === "dismissed"
+        ? "Signalement classé sans suite."
+        : "Un avertissement a été adressé au commerçant.");
 
-  // Mettre à jour le statut du signalement.
-  setReports((currentReports) =>
-    currentReports.map((report) =>
-      report.id === selectedReport.id
-        ? {
-            ...report,
-            status: action,
-            resolution,
-          }
-        : report
-    )
-  )
+    try {
+      setIsProcessing(true);
+      setActionError("");
 
-  // Suspendre également la boutique concernée.
-  if (action === 'suspended') {
-    setShops((currentShops) =>
-      currentShops.map((shop) =>
-        shop.id === selectedReport.shopId
-          ? {
-              ...shop,
-              status: 'suspended',
-              suspensionReason: reason,
-            }
-          : shop
-      )
-    )
-  }
+      if (action === "suspended") {
+        await adminService.suspendMerchant(selectedReport.shopId, reason);
 
-  setSelectedReport(null)
-  setResolutionNote('')
-}
+        setShops((currentShops) =>
+          currentShops.map((shop) =>
+            shop.id === selectedReport.shopId
+              ? {
+                  ...shop,
+                  status: "suspended",
+                  suspensionReason: reason,
+                }
+              : shop,
+          ),
+        );
+      }
 
+      await adminService.updateReportStatus(
+        selectedReport.id,
+        action,
+        resolution,
+      );
+
+      setReports((currentReports) =>
+        currentReports.map((report) =>
+          report.id === selectedReport.id
+            ? { ...report, status: action, resolution }
+            : report,
+        ),
+      );
+
+      setSelectedReport(null);
+      setResolutionNote("");
+      setActionError("");
+    } catch (error) {
+      setActionError(error.message || "Impossible de traiter ce signalement.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
   const pendingCount = reports.filter(
-    (report) => report.status === 'pending'
-  ).length
+    (report) => report.status === "pending",
+  ).length;
 
   const dismissedCount = reports.filter(
-    (report) => report.status === 'dismissed'
-  ).length
+    (report) => report.status === "dismissed",
+  ).length;
 
   const warningCount = reports.filter(
-    (report) => report.status === 'warning'
-  ).length
+    (report) => report.status === "warning",
+  ).length;
 
   return (
     <section className="space-y-6">
@@ -166,20 +185,21 @@ const handleReportAction = (action) => {
 
         <div className="flex flex-wrap gap-2">
           {[
-            { value: 'all', label: 'Tous' },
-            { value: 'pending', label: 'En attente' },
-            { value: 'dismissed', label: 'Classés sans suite' },
-            { value: 'warning', label: 'Avertissements' },
-            { value: 'suspended', label: 'Boutiques suspendues' },
+            { value: "all", label: "Tous" },
+            { value: "pending", label: "En attente" },
+            { value: "dismissed", label: "Classés sans suite" },
+            { value: "warning", label: "Avertissements" },
+            { value: "suspended", label: "Boutiques suspendues" },
           ].map((filter) => (
             <button
               key={filter.value}
               type="button"
               onClick={() => setActiveFilter(filter.value)}
+              disabled={isProcessing}
               className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                 activeFilter === filter.value
-                  ? 'bg-teal-700 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? "bg-teal-700 text-white"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
             >
               {filter.label}
@@ -204,7 +224,7 @@ const handleReportAction = (action) => {
           </div>
         ) : (
           filteredReports.map((report) => {
-            const status = statusConfig[report.status]
+            const status = statusConfig[report.status];
 
             return (
               <article
@@ -234,14 +254,15 @@ const handleReportAction = (action) => {
                     </p>
 
                     <p className="text-sm text-slate-500">
-                      Date :{' '}
-                      {new Date(report.submittedAt).toLocaleString('fr-FR')}
+                      Date :{" "}
+                      {new Date(report.submittedAt).toLocaleString("fr-FR")}
                     </p>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setSelectedReport(report)}
+                    disabled={isProcessing}
                     className="rounded-lg border border-teal-700 px-4 py-2 text-sm font-medium text-teal-700 transition hover:bg-teal-50"
                   >
                     Voir les détails
@@ -252,7 +273,7 @@ const handleReportAction = (action) => {
                   {report.description}
                 </p>
               </article>
-            )
+            );
           })
         )}
       </div>
@@ -260,7 +281,7 @@ const handleReportAction = (action) => {
       {selectedReport && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
-          onClick={() => setSelectedReport(null)}
+          onClick={closeReportModal}
         >
           <div
             role="dialog"
@@ -285,7 +306,7 @@ const handleReportAction = (action) => {
 
               <button
                 type="button"
-                onClick={() => setSelectedReport(null)}
+                onClick={closeReportModal}
                 aria-label="Fermer"
                 className="rounded-lg px-3 py-1 text-xl text-slate-500 hover:bg-slate-100"
               >
@@ -321,7 +342,6 @@ const handleReportAction = (action) => {
                 </p>
               </div>
 
-
               {selectedReport.resolution && (
                 <div className="rounded-lg bg-slate-50 p-3">
                   <p className="text-xs font-medium uppercase text-slate-400">
@@ -333,7 +353,7 @@ const handleReportAction = (action) => {
                 </div>
               )}
 
-              {selectedReport.status === 'pending' && (
+              {selectedReport.status === "pending" && (
                 <div className="border-t border-slate-200 pt-5">
                   <label
                     htmlFor="resolutionNote"
@@ -345,49 +365,58 @@ const handleReportAction = (action) => {
                   <textarea
                     id="resolutionNote"
                     value={resolutionNote}
-                    onChange={(event) =>
-                      setResolutionNote(event.target.value)
-                    }
+                    onChange={(event) => setResolutionNote(event.target.value)}
                     rows={3}
                     placeholder="Expliquez votre décision..."
                     className="w-full rounded-lg border border-slate-300 p-3 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
                   />
 
+                  {actionError && (
+                    <p role="alert" className="mt-2 text-sm text-red-600">
+                      {actionError}
+                    </p>
+                  )}
+
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => handleReportAction('dismissed')}
+                      onClick={() => handleReportAction("dismissed")}
+                      disabled={isProcessing}
                       className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     >
-                      Classer sans suite
+                      {isProcessing
+                        ? "Traitement en cours..."
+                        : "Classer sans suite"}
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => handleReportAction('warning')}
+                      onClick={() => handleReportAction("warning")}
+                      disabled={isProcessing}
                       className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
-                      Envoyer un avertissement
+                      {isProcessing
+                        ? "Traitement en cours..."
+                        : "Envoyer un avertissement"}
                     </button>
 
                     <button
                       type="button"
-                      disabled={!resolutionNote.trim()}
-                      onClick={() => handleReportAction('suspended')}
+                      disabled={!resolutionNote.trim() || isProcessing}
+                      onClick={() => handleReportAction("suspended")}
                       className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      Suspendre la boutique
+                      {isProcessing
+                        ? "Suspension en cours..."
+                        : "Suspendre la boutique"}
                     </button>
                   </div>
                 </div>
               )}
-
             </div>
           </div>
         </div>
       )}
-
     </section>
-  )
-
+  );
 }

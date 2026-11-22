@@ -10,21 +10,24 @@ import {
   XCircle,
 } from 'lucide-react'
 
-import adminData from '../mocks/adminData.json'
 
 // Formater les montants en FCFA
 const formatCurrency = (amount) =>
   new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA'
 
 // Formater les dates en français
-const formatDate = (date) =>
-  new Intl.DateTimeFormat('fr-FR', {
+const formatDate = (date) => {
+  if (!date) return '-'
+  const parsed = new Date(date)
+  if (isNaN(parsed.getTime())) return '-'
+  return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(date))
+  }).format(parsed)
+}
 
 // Correspondance entre les statuts et leur présentation
 const reportStatus = {
@@ -45,8 +48,7 @@ const reportStatus = {
   },
 }
 
-function DashboardPage({ shops = adminData.shops, reports = adminData.reports }) {
-  const { dashboard } = adminData
+function DashboardPage({ shops = [], reports = [], dashboardStats = {} }) {
 
   // Calculer les statistiques à partir des données
   const totalShops = shops.length
@@ -88,7 +90,7 @@ function DashboardPage({ shops = adminData.shops, reports = adminData.reports })
     },
     {
       label: 'Volume des transactions',
-      value: formatCurrency(dashboard.transactionVolumeXof),
+      value: formatCurrency(dashboardStats.transactionVolumeXof ?? 0),
       description: 'Volume global enregistré',
       icon: CircleDollarSign,
       iconStyle: 'bg-violet-50 text-violet-700',
