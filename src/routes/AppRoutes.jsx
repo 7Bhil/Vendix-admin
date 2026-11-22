@@ -6,6 +6,7 @@ import LoginPage from "../pages/LoginPage";
 import DashboardPage from "../pages/DashboardPage";
 import MerchantsPage from "../pages/MerchantsPage";
 import ReportsPage from "../pages/ReportsPage";
+import AuditLogPage from "../pages/AuditLogPage";
 
 export default function AppRoutes({
   shops,
@@ -45,6 +46,7 @@ export default function AppRoutes({
               />
             }
           />
+          <Route path="/audit-logs" element={<AuditLogPage />} />
         </Route>
       </Route>
 
