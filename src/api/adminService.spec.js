@@ -124,5 +124,9 @@ describe('adminService', () => {
     await adminService.suspendMerchant(targetShop.id, 'Non-respect des règles');
     const shopsAfter = await adminService.getMerchants();
     expect(shopsAfter.find((s) => s.id === targetShop.id).status).toBe('suspended');
+
+    const auditLogs = await adminService.getAuditLogs({ action: 'SUSPEND_MERCHANT' });
+    expect(auditLogs[0].action).toBe('SUSPEND_MERCHANT');
+    expect(auditLogs[0].reason).toBe('Non-respect des règles');
   });
 });
