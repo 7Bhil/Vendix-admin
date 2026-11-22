@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 
 import AdminLayout from "../components/AdminLayout";
@@ -5,13 +6,25 @@ import DashboardPage from "../pages/DashboardPage";
 import MerchantsPage from "../pages/MerchantsPage";
 import ReportsPage from "../pages/ReportsPage";
 
-export default function AppRoutes({ shops, setShops, reports, setReports }) {
+export default function AppRoutes({
+  shops,
+  setShops,
+  reports,
+  setReports,
+  dashboardStats,
+}) {
   return (
     <Routes>
       <Route element={<AdminLayout />}>
         <Route
           path="/"
-          element={<DashboardPage shops={shops} reports={reports} />}
+          element={
+            <DashboardPage
+              shops={shops}
+              reports={reports}
+              dashboardStats={dashboardStats}
+            />
+          }
         />
         <Route
           path="/commercants"

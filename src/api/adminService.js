@@ -1,16 +1,17 @@
-import initialData from '../mocks/adminData.json'
+import initialData from '../mocks/adminData.json';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-const TOKEN_KEY = 'vendix_admin_token'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const TOKEN_KEY = 'vendix_admin_token';
 
-export const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+export const USE_MOCK =
+  import.meta.env.VITE_USE_MOCK !== 'false' &&
+  import.meta.env.VITE_USE_MOCKS !== 'false';
 
-// Stockage en mémoire pour le mode mock afin de simuler la persistance
 let mockState = {
   dashboard: { ...initialData.dashboard },
   shops: [...initialData.shops],
   reports: [...initialData.reports],
-}
+};
 
 /**
  * Réinitialise l'état mock (principalement pour les tests)
@@ -20,7 +21,7 @@ export function resetMockState() {
     dashboard: { ...initialData.dashboard },
     shops: [...initialData.shops],
     reports: [...initialData.reports],
-  }
+  };
 }
 
 /**
@@ -31,33 +32,39 @@ export const tokenStorage = {
   setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
   removeToken: () => localStorage.removeItem(TOKEN_KEY),
   hasToken: () => Boolean(localStorage.getItem(TOKEN_KEY)),
-}
+};
 
 /**
  * Exécute une requête HTTP avec gestion automatique du token JWT
  */
 async function request(endpoint, options = {}) {
-  const token = tokenStorage.getToken()
+  const token = tokenStorage.getToken();
   const headers = {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
-  }
+  };
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
-  })
+  });
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}))
-    const error = new Error(errorBody.message || `Erreur HTTP ${response.status}`)
-    error.status = response.status
-    error.data = errorBody
-    throw error
+    const errorBody = await response.json().catch(() => ({}));
+    const error = new Error(errorBody.message || `Erreur HTTP ${response.status}`);
+    error.status = response.status;
+    error.data = errorBody;
+    throw error;
   }
 
-  return response.json()
+  const payload = await response.json();
+  if (payload?.success === false) {
+    throw new Error(payload.message || 'L’opération a échoué.');
+  }
+
+  return payload?.data ?? payload;
 }
 
 /**
@@ -70,8 +77,8 @@ export const adminService = {
   async login(credentials) {
     if (USE_MOCK) {
       if (credentials.password === 'admin123' || credentials.identifier === 'admin@vendix.bj') {
-        const fakeToken = 'mock_jwt_superadmin_token_xyz'
-        tokenStorage.setToken(fakeToken)
+        const fakeToken = 'mock_jwt_superadmin_token_xyz';
+        tokenStorage.setToken(fakeToken);
         return {
           accessToken: fakeToken,
           admin: {
@@ -79,30 +86,30 @@ export const adminService = {
             email: 'admin@vendix.bj',
             role: 'ADMIN',
           },
-        }
+        };
       }
-      const error = new Error('Identifiants administrateur incorrects')
-      error.status = 401
-      throw error
+      const error = new Error('Identifiants administrateur incorrects');
+      error.status = 401;
+      throw error;
     }
 
     const data = await request('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
-    })
+    });
 
     if (data?.accessToken) {
-      tokenStorage.setToken(data.accessToken)
+      tokenStorage.setToken(data.accessToken);
     }
 
-    return data
+    return data;
   },
 
   /**
    * Déconnexion administrateur
    */
   logout() {
-    tokenStorage.removeToken()
+    tokenStorage.removeToken();
   },
 
   /**
@@ -111,13 +118,14 @@ export const adminService = {
   async getDashboardStats() {
     if (USE_MOCK) {
       return {
+        ...mockState.dashboard,
         dashboard: mockState.dashboard,
         shops: mockState.shops,
         reports: mockState.reports,
-      }
+      };
     }
 
-    return request('/admin/dashboard')
+    return request('/admin/dashboard');
   },
 
   /**
@@ -125,10 +133,10 @@ export const adminService = {
    */
   async getMerchants() {
     if (USE_MOCK) {
-      return [...mockState.shops]
+      return [...mockState.shops];
     }
 
-    return request('/admin/merchants')
+    return request('/admin/merchants');
   },
 
   /**
@@ -139,15 +147,21 @@ export const adminService = {
       mockState.shops = mockState.shops.map((shop) =>
         shop.id === Number(shopId) || shop.id === shopId
           ? { ...shop, status: 'suspended', suspensionReason: reason }
-          : shop
-      )
-      return { success: true, shopId, status: 'suspended', reason }
+          : shop,
+      );
+      return {
+        success: true,
+        shopId,
+        status: 'suspended',
+        reason,
+        data: mockState.shops.find((s) => s.id === Number(shopId) || s.id === shopId),
+      };
     }
 
     return request(`/admin/merchants/${shopId}/suspend`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
-    })
+    });
   },
 
   /**
@@ -155,34 +169,34 @@ export const adminService = {
    */
   async getReports() {
     if (USE_MOCK) {
-      return [...mockState.reports]
+      return [...mockState.reports];
     }
 
-    return request('/admin/reports')
+    return request('/admin/reports');
   },
 
   /**
-   * Mettre à jour le statut d'un signalement (warning, dismissed, suspended)
+   * Mettre à jour le statut d'un signalement
    */
-  async updateReportStatus(reportId, action, resolutionNote = '') {
+  async updateReportStatus(reportId, status, resolution = '') {
     if (USE_MOCK) {
       mockState.reports = mockState.reports.map((report) =>
-        report.id === Number(reportId) || report.id === reportId
-          ? {
-              ...report,
-              status: action,
-              resolution: resolutionNote || `Signalement traité : ${action}`,
-            }
-          : report
-      )
-      return { success: true, reportId, status: action, resolutionNote }
+        report.id === reportId
+          ? { ...report, status, resolution }
+          : report,
+      );
+      return {
+        success: true,
+        reportId,
+        status,
+        resolution,
+        data: mockState.reports.find((r) => r.id === reportId),
+      };
     }
 
     return request(`/admin/reports/${reportId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: action, resolution: resolutionNote }),
-    })
+      body: JSON.stringify({ status, resolutionNote: resolution }),
+    });
   },
-}
-
-export default adminService
+};
