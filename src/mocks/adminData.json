@@ -3,6 +3,50 @@
   "dashboard": {
     "transactionVolumeXof": 128450000
   },
+    "auditLogs": [
+    {
+      "id": "audit-demo-001",
+      "timestamp": "2026-11-20T14:30:00.000Z",
+      "adminId": "admin-001",
+      "adminName": "Bhilal C.",
+      "action": "SUSPEND_MERCHANT",
+      "targetType": "SHOP",
+      "targetId": 3,
+      "targetName": "Mode Élégance",
+      "reason": "Suspicion de fraude répétée sur les commandes.",
+      "previousValue": "active",
+      "newValue": "suspended",
+      "ipAddress": "197.234.221.10"
+    },
+    {
+      "id": "audit-demo-002",
+      "timestamp": "2026-11-19T10:15:00.000Z",
+      "adminId": "admin-001",
+      "adminName": "Bhilal C.",
+      "action": "REPORT_DISMISSED",
+      "targetType": "REPORT",
+      "targetId": 104,
+      "targetName": "Signalement #104 — Chez Maman Afi",
+      "reason": "Signalement classé après vérification.",
+      "previousValue": "pending",
+      "newValue": "dismissed",
+      "ipAddress": "197.234.221.10"
+    },
+    {
+      "id": "audit-demo-003",
+      "timestamp": "2026-11-18T09:45:00.000Z",
+      "adminId": "admin-001",
+      "adminName": "Bhilal C.",
+      "action": "REPORT_WARNING",
+      "targetType": "REPORT",
+      "targetId": 105,
+      "targetName": "Signalement #105 — Bio Marché",
+      "reason": "Un avertissement a été adressé au commerçant.",
+      "previousValue": "pending",
+      "newValue": "warning",
+      "ipAddress": "197.234.221.10"
+    }
+  ],
   "shops": [
     {
       "id": 1,

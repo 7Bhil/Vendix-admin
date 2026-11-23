@@ -5,6 +5,7 @@ import {
   Store,
   Flag,
   ShieldCheck,
+  ClipboardList,
 } from 'lucide-react'
 
 const navigationItems = [
@@ -23,6 +24,11 @@ const navigationItems = [
     label: 'Signalements',
     path: '/signalements',
     icon: Flag,
+  },
+   {
+    label: 'Journal d’audit',
+    path: '/audit-logs',
+    icon: ClipboardList,
   },
 ]
 

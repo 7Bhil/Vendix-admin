@@ -21,6 +21,7 @@ const STORAGE_KEYS = {
   dashboard: 'vendix_admin_dashboard',
   merchants: 'vendix_admin_merchants',
   reports: 'vendix_admin_reports',
+  auditLogs: 'vendix_admin_audit_logs',
 };
 
 // Charger les données sauvegardées ou utiliser les données initiales.
@@ -41,6 +42,19 @@ const readMockData = (key, initialData) => {
 // Sauvegarder les données mock pour les conserver après actualisation.
 const saveMockData = (key, data) => {
   localStorage.setItem(key, JSON.stringify(data));
+};
+
+// Ajouter un événement au journal d'audit.
+const appendMockAuditLog = (auditLog) => {
+  const auditLogs = readMockData(
+    STORAGE_KEYS.auditLogs,
+    mockData.auditLogs || [],
+  );
+
+  saveMockData(
+    STORAGE_KEYS.auditLogs,
+    [auditLog, ...auditLogs],
+  );
 };
 
 // Effectuer une requête HTTP et gérer les erreurs.
@@ -99,13 +113,39 @@ export const adminService = {
     return extractData(response);
   },
 
-  // Suspendre un commerçant.
+    // Récupérer l'historique des actions administratives.
+  async getAuditLogs() {
+    if (USE_MOCKS) {
+      const auditLogs = readMockData(
+        STORAGE_KEYS.auditLogs,
+        mockData.auditLogs || [],
+      );
+
+      return [...auditLogs].sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+      );
+    }
+
+    const response = await apiRequest('/admin/audit-logs');
+    return extractData(response);
+  },
+
+  // Suspendre un commerçant et enregistrer l'action dans le journal d'audit.
   async suspendMerchant(id, reason) {
     if (USE_MOCKS) {
       const merchants = readMockData(
         STORAGE_KEYS.merchants,
         mockData.shops,
       );
+
+      const merchantToSuspend = merchants.find(
+        (merchant) => merchant.id === id,
+      );
+
+      // Ne pas poursuivre si le commerçant n'existe pas.
+      if (!merchantToSuspend) {
+        throw new Error('Commerçant introuvable.');
+      }
 
       const updatedMerchants = merchants.map((merchant) =>
         merchant.id === id
@@ -118,6 +158,26 @@ export const adminService = {
       );
 
       saveMockData(STORAGE_KEYS.merchants, updatedMerchants);
+
+      // Créer une entrée d'audit en mode démonstration.
+      appendMockAuditLog({
+        id: globalThis.crypto?.randomUUID?.()
+          || `audit-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        timestamp: new Date().toISOString(),
+        adminId: 'demo-admin',
+        adminName: 'Administrateur de démonstration',
+        action: 'SUSPEND_MERCHANT',
+        targetType: 'SHOP',
+        targetId: merchantToSuspend.id,
+        targetName:
+          merchantToSuspend.name
+          || merchantToSuspend.shopName
+          || `Commerçant #${id}`,
+        reason,
+        previousValue: merchantToSuspend.status,
+        newValue: 'suspended',
+        ipAddress: '127.0.0.1',
+      });
 
       return {
         success: true,
@@ -133,6 +193,7 @@ export const adminService = {
     return extractData(response);
   },
 
+
   // Récupérer les signalements.
   async getReports() {
     if (USE_MOCKS) {
@@ -147,12 +208,22 @@ export const adminService = {
   },
 
   // Mettre à jour le statut d'un signalement.
+
+  // Mettre à jour le statut d'un signalement et tracer les décisions sensibles.
   async updateReportStatus(id, action, resolutionNote = '') {
     if (USE_MOCKS) {
       const reports = readMockData(
         STORAGE_KEYS.reports,
         mockData.reports,
       );
+
+      const reportToUpdate = reports.find(
+        (report) => report.id === id,
+      );
+
+      if (!reportToUpdate) {
+        throw new Error('Signalement introuvable.');
+      }
 
       const updatedReports = reports.map((report) =>
         report.id === id
@@ -165,6 +236,28 @@ export const adminService = {
       );
 
       saveMockData(STORAGE_KEYS.reports, updatedReports);
+
+      // Ne pas créer un deuxième événement lors d'une suspension.
+      if (action === 'dismissed' || action === 'warning') {
+        appendMockAuditLog({
+          id: globalThis.crypto?.randomUUID?.()
+            || `audit-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          timestamp: new Date().toISOString(),
+          adminId: 'demo-admin',
+          adminName: 'Administrateur de démonstration',
+          action:
+            action === 'dismissed'
+              ? 'REPORT_DISMISSED'
+              : 'REPORT_WARNING',
+          targetType: 'REPORT',
+          targetId: reportToUpdate.id,
+          targetName: `Signalement #${reportToUpdate.id} — ${reportToUpdate.shopName}`,
+          reason: resolutionNote,
+          previousValue: reportToUpdate.status,
+          newValue: action,
+          ipAddress: '127.0.0.1',
+        });
+      }
 
       return {
         success: true,
@@ -182,4 +275,5 @@ export const adminService = {
 
     return extractData(response);
   },
+
 };
