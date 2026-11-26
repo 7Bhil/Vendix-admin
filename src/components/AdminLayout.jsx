@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Store,
   Flag,
+  ScrollText,
   ShieldCheck,
 } from 'lucide-react'
 
@@ -23,6 +24,11 @@ const navigationItems = [
     label: 'Signalements',
     path: '/signalements',
     icon: Flag,
+  },
+  {
+    label: "Journal d'audit",
+    path: '/audit-logs',
+    icon: ScrollText,
   },
 ]
 
